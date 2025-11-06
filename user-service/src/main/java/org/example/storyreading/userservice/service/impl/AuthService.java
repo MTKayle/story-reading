@@ -91,17 +91,18 @@ public class AuthService implements IAuthService {
     @Transactional
     public AuthDtos.AuthResponse refresh(AuthDtos.RefreshTokenRequest request) {
         RefreshTokenEntity token = refreshTokenRepository.findByToken(request.refreshToken)
-                .orElseThrow(() -> new IllegalArgumentException("Refresh token không hợp lệ"));
+                .orElseThrow(() -> new IllegalArgumentException("Refresh token không hợp lệ. Vui lòng đăng nhập lại."));
 
         if (token.getExpiryDate().isBefore(Instant.now())) {
+            // Xóa refresh token hết hạn để bảo mật
             refreshTokenRepository.delete(token);
-            throw new IllegalArgumentException("Refresh token đã hết hạn");
+            throw new IllegalArgumentException("Refresh token đã hết hạn. Vui lòng đăng nhập lại.");
         }
 
         UserEntity user = token.getUser();
         String accessToken = jwtUtils.generateToken(user.getId(), user.getUsername(), user.getRole().getName(), user.getEmail());
 
-        // Có thể rotate refresh token để tăng bảo mật
+        // Rotate refresh token để tăng bảo mật
         String newRefresh = rotateRefreshToken(user);
         return new AuthDtos.AuthResponse(accessToken, newRefresh);
     }
@@ -110,9 +111,11 @@ public class AuthService implements IAuthService {
         return refreshTokenRepository.findByUser(user)
                 .map(rt -> {
                     if (rt.getExpiryDate().isBefore(Instant.now())) {
-                        // hết hạn thì cấp mới
-                        return rotateRefreshToken(user);
+                        // Refresh token hết hạn, xóa và tạo mới (user đang đăng nhập lại)
+                        refreshTokenRepository.delete(rt);
+                        return issueOrRotateRefreshToken(user);
                     }
+                    // Refresh token còn hạn, giữ nguyên
                     return rt.getToken();
                 })
                 .orElseGet(() -> issueOrRotateRefreshToken(user));
