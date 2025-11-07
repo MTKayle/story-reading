@@ -25,7 +25,8 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
     private static final List<String> PUBLIC_ENDPOINTS = List.of(
             "/api/auth/register",
             "/api/auth/login",
-            "/api/auth/refresh"
+            "/api/auth/refresh",
+            "/public/"
     );
 
     @Override
