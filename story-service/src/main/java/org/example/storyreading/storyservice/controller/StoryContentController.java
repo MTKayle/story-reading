@@ -199,74 +199,168 @@ public class StoryContentController {
     }
 
     // Replace an existing image (by filename or index) with uploaded file. Keep the filename so order remains.
+//    @PutMapping("/{storyId}/chapters/{chapterNumber}/images/replace")
+//    public ResponseEntity<String> replaceChapterImage(
+//            @PathVariable Long storyId,
+//            @PathVariable int chapterNumber,
+//            @RequestParam(required = false) String filename,
+//            @RequestParam(required = false) Integer index,
+//            @RequestParam("file") MultipartFile file) {
+//        StoryEntity s = storyRepository.findById(storyId).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Story not found"));
+//        String slug = SlugUtil.slugify(s.getTitle());
+//        Path chapterDir = IMAGES_DIR.resolve(slug).resolve(String.valueOf(chapterNumber));
+//
+//        ChapterEntity chapter = chapterRepository.findByStoryAndChapterNumber(s, chapterNumber).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Chapter not found"));
+//        String existing = chapter.getImageIds();
+//        if (existing == null || existing.isEmpty()) {
+//            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "No images to replace");
+//        }
+//        List<String> images = new ArrayList<>(Arrays.asList(existing.split(",")));
+//
+//        String targetFileName = null;
+//        int targetIndex = -1;
+//        if (filename != null && !filename.isEmpty()) {
+//            // allow filename or full URL
+//            String fnTrim = filename.trim();
+//            String targetUrl;
+//            if (fnTrim.startsWith("/")) {
+//                targetUrl = fnTrim;
+//            } else if (fnTrim.contains("/public/images/")) {
+//                targetUrl = fnTrim.substring(fnTrim.indexOf("/public/images/"));
+//            } else {
+//                targetUrl = "/public/images/" + slug + "/" + chapterNumber + "/" + fnTrim;
+//            }
+//            targetIndex = images.indexOf(targetUrl);
+//            if (targetIndex < 0) {
+//                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Filename not found in chapter images");
+//            }
+//            targetFileName = targetUrl.substring(targetUrl.lastIndexOf('/') + 1);
+//        } else if (index != null) {
+//            int i = index - 1;
+//            if (i < 0 || i >= images.size()) {
+//                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Index out of range");
+//            }
+//            targetIndex = i;
+//            String targetUrl = images.get(i);
+//            targetFileName = targetUrl.substring(targetUrl.lastIndexOf('/') + 1);
+//        } else {
+//            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Provide filename or index to replace");
+//        }
+//
+//        try {
+//            Files.createDirectories(chapterDir);
+//            Path targetPath = chapterDir.resolve(targetFileName);
+//            // Overwrite existing file keeping the same filename so URLs remain consistent and order preserved
+//            Files.copy(file.getInputStream(), targetPath, StandardCopyOption.REPLACE_EXISTING);
+//        } catch (IOException e) {
+//            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Failed to write replacement file: " + e.getMessage());
+//        }
+//
+//        // No change needed to images list if filename unchanged; but persist to ensure DB consistency
+//        chapter.setImageIds(String.join(",", images));
+//        chapterRepository.save(chapter);
+//
+//        String returnedUrl = "/public/images/" + slug + "/" + chapterNumber + "/" + targetFileName;
+//        return ResponseEntity.ok(returnedUrl);
+//    }
+
+    private String getExtension(String original) {
+        if (!StringUtils.hasText(original) || !original.contains(".")) return "";
+        String ext = original.substring(original.lastIndexOf('.') + 1);
+        return ext.toLowerCase();
+    }
+
     @PutMapping("/{storyId}/chapters/{chapterNumber}/images/replace")
-    public ResponseEntity<String> replaceChapterImage(
+    public ResponseEntity<List<String>> replaceChapterImages(
             @PathVariable Long storyId,
             @PathVariable int chapterNumber,
-            @RequestParam(required = false) String filename,
-            @RequestParam(required = false) Integer index,
-            @RequestParam("file") MultipartFile file) {
-        StoryEntity s = storyRepository.findById(storyId).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Story not found"));
+            @RequestParam(required = false) List<String> filename,
+            @RequestParam(required = false) List<Integer> index,
+            @RequestParam("files") List<MultipartFile> files) {
+
+        StoryEntity s = storyRepository.findById(storyId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Story not found"));
         String slug = SlugUtil.slugify(s.getTitle());
         Path chapterDir = IMAGES_DIR.resolve(slug).resolve(String.valueOf(chapterNumber));
 
-        ChapterEntity chapter = chapterRepository.findByStoryAndChapterNumber(s, chapterNumber).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Chapter not found"));
+        ChapterEntity chapter = chapterRepository.findByStoryAndChapterNumber(s, chapterNumber)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Chapter not found"));
         String existing = chapter.getImageIds();
         if (existing == null || existing.isEmpty()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "No images to replace");
         }
         List<String> images = new ArrayList<>(Arrays.asList(existing.split(",")));
 
-        String targetFileName = null;
-        int targetIndex = -1;
-        if (filename != null && !filename.isEmpty()) {
-            // allow filename or full URL
-            String fnTrim = filename.trim();
-            String targetUrl;
-            if (fnTrim.startsWith("/")) {
-                targetUrl = fnTrim;
-            } else if (fnTrim.contains("/public/images/")) {
-                targetUrl = fnTrim.substring(fnTrim.indexOf("/public/images/"));
-            } else {
-                targetUrl = "/public/images/" + slug + "/" + chapterNumber + "/" + fnTrim;
-            }
-            targetIndex = images.indexOf(targetUrl);
-            if (targetIndex < 0) {
-                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Filename not found in chapter images");
-            }
-            targetFileName = targetUrl.substring(targetUrl.lastIndexOf('/') + 1);
-        } else if (index != null) {
-            int i = index - 1;
-            if (i < 0 || i >= images.size()) {
-                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Index out of range");
-            }
-            targetIndex = i;
-            String targetUrl = images.get(i);
-            targetFileName = targetUrl.substring(targetUrl.lastIndexOf('/') + 1);
-        } else {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Provide filename or index to replace");
+        if ((filename == null || filename.isEmpty()) && (index == null || index.isEmpty())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Provide filename(s) or index(es) to replace");
+        }
+        if (files == null || files.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "No files uploaded for replacement");
         }
 
+        // Determine mapping between uploaded files and target filenames
+        List<String> targetFileNames = new ArrayList<>();
         try {
+            if (filename != null && !filename.isEmpty()) {
+                if (filename.size() != files.size()) {
+                    throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Number of filename parameters must match number of uploaded files");
+                }
+                for (String fn : filename) {
+                    String fnTrim = fn.trim();
+                    String targetUrl;
+                    if (fnTrim.startsWith("/")) {
+                        targetUrl = fnTrim;
+                    } else if (fnTrim.contains("/public/images/")) {
+                        targetUrl = fnTrim.substring(fnTrim.indexOf("/public/images/"));
+                    } else {
+                        targetUrl = "/public/images/" + slug + "/" + chapterNumber + "/" + fnTrim;
+                    }
+                    int targetIndex = images.indexOf(targetUrl);
+                    if (targetIndex < 0) {
+                        throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Filename not found in chapter images: " + fnTrim);
+                    }
+                    String targetFileName = targetUrl.substring(targetUrl.lastIndexOf('/') + 1);
+                    targetFileNames.add(targetFileName);
+                }
+            } else {
+                // index provided
+                if (index.size() != files.size()) {
+                    throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Number of index parameters must match number of uploaded files");
+                }
+                for (Integer idx : index) {
+                    if (idx == null) {
+                        throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Null index provided");
+                    }
+                    int i = idx - 1;
+                    if (i < 0 || i >= images.size()) {
+                        throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Index out of range: " + idx);
+                    }
+                    String targetUrl = images.get(i);
+                    String targetFileName = targetUrl.substring(targetUrl.lastIndexOf('/') + 1);
+                    targetFileNames.add(targetFileName);
+                }
+            }
+
+            // Write each uploaded file to its corresponding target filename (overwrite)
             Files.createDirectories(chapterDir);
-            Path targetPath = chapterDir.resolve(targetFileName);
-            // Overwrite existing file keeping the same filename so URLs remain consistent and order preserved
-            Files.copy(file.getInputStream(), targetPath, StandardCopyOption.REPLACE_EXISTING);
+            List<String> replacedUrls = new ArrayList<>();
+            for (int i = 0; i < files.size(); i++) {
+                MultipartFile f = files.get(i);
+                String targetFileName = targetFileNames.get(i);
+                Path targetPath = chapterDir.resolve(targetFileName);
+                Files.copy(f.getInputStream(), targetPath, StandardCopyOption.REPLACE_EXISTING);
+                replacedUrls.add("/public/images/" + slug + "/" + chapterNumber + "/" + targetFileName);
+                log.info("Replaced chapter image: {}", targetPath.toAbsolutePath());
+            }
+
+            // Persist imageIds unchanged (but save to ensure DB sync)
+            chapter.setImageIds(String.join(",", images));
+            chapterRepository.save(chapter);
+
+            return ResponseEntity.ok(replacedUrls);
+
         } catch (IOException e) {
-            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Failed to write replacement file: " + e.getMessage());
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Failed to write replacement files: " + e.getMessage());
         }
-
-        // No change needed to images list if filename unchanged; but persist to ensure DB consistency
-        chapter.setImageIds(String.join(",", images));
-        chapterRepository.save(chapter);
-
-        String returnedUrl = "/public/images/" + slug + "/" + chapterNumber + "/" + targetFileName;
-        return ResponseEntity.ok(returnedUrl);
-    }
-
-    private String getExtension(String original) {
-        if (!StringUtils.hasText(original) || !original.contains(".")) return "";
-        String ext = original.substring(original.lastIndexOf('.') + 1);
-        return ext.toLowerCase();
     }
 }
