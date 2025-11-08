@@ -32,10 +32,25 @@ public class ChapterController {
 
     @GetMapping("/chapters/{chapterId}")
     public ResponseEntity<StoryDtos.ChapterResponse> getChapter(
-            @RequestHeader(value = "X-User-Id") Long userId,
             @PathVariable Long chapterId) {
-        return ResponseEntity.ok(chapterService.getChapterForUser(userId, chapterId));
+        return ResponseEntity.ok(chapterService.getChapterForUser(chapterId));
+    }
+
+    @PutMapping("/{storyId}/chapters/{chapterId}")
+    public ResponseEntity<StoryDtos.ChapterResponse> updateChapter(
+            @RequestHeader(value = "X-User-Id") Long userId,
+            @PathVariable Long storyId,
+            @PathVariable Long chapterId,
+            @RequestBody StoryDtos.CreateChapterRequest request) {
+        return ResponseEntity.ok(chapterService.updateChapter(storyId, chapterId, request));
+    }
+
+    @DeleteMapping("/{storyId}/chapters/{chapterId}")
+    public ResponseEntity<Void> deleteChapter(
+            @RequestHeader(value = "X-User-Id") Long userId,
+            @PathVariable Long storyId,
+            @PathVariable Long chapterId) {
+        chapterService.deleteChapter(storyId, chapterId);
+        return ResponseEntity.noContent().build();
     }
 }
-
-

@@ -5,26 +5,32 @@ import org.example.storyreading.storyservice.entity.ChapterEntity;
 import org.example.storyreading.storyservice.entity.StoryEntity;
 import org.example.storyreading.storyservice.repository.ChapterRepository;
 import org.example.storyreading.storyservice.repository.StoryRepository;
-import org.example.storyreading.storyservice.repository.PurchaseRepository;
 import org.example.storyreading.storyservice.service.IChapterService;
+import org.example.storyreading.storyservice.util.SlugUtil;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
+import java.io.IOException;
+import java.nio.file.*;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Service
 public class ChapterService implements IChapterService {
 
     private final ChapterRepository chapterRepository;
     private final StoryRepository storyRepository;
-    private final PurchaseRepository purchaseRepository;
+    private final Path publicImagesDir;
 
-    public ChapterService(ChapterRepository chapterRepository, StoryRepository storyRepository, PurchaseRepository purchaseRepository) {
+    public ChapterService(ChapterRepository chapterRepository, StoryRepository storyRepository,
+                          @Value("${storage.public-dir:public}") String publicDir) {
         this.chapterRepository = chapterRepository;
         this.storyRepository = storyRepository;
-        this.purchaseRepository = purchaseRepository;
+        this.publicImagesDir = Paths.get(publicDir).resolve("images");
     }
 
     @Override
@@ -54,16 +60,80 @@ public class ChapterService implements IChapterService {
     }
 
     @Override
-    public StoryDtos.ChapterResponse getChapterForUser(Long userId, Long chapterId) {
+    public StoryDtos.ChapterResponse getChapterForUser(Long chapterId) {
         ChapterEntity c = chapterRepository.findById(chapterId).orElseThrow(() -> new IllegalArgumentException("Chapter not found"));
-        StoryEntity story = c.getStory();
-        if (story.isPaid()) {
-            boolean purchased = purchaseRepository.existsByUserIdAndStory(userId, story);
-            if (!purchased) {
-                throw new IllegalArgumentException("You must purchase this story to read chapters");
-            }
-        }
         return toDto(c);
+    }
+
+    @Override
+    public StoryDtos.ChapterResponse updateChapter(Long storyId, Long chapterId, StoryDtos.CreateChapterRequest request) {
+        StoryEntity story = storyRepository.findById(storyId).orElseThrow(() -> new IllegalArgumentException("Story not found"));
+        ChapterEntity chapter = chapterRepository.findById(chapterId).orElseThrow(() -> new IllegalArgumentException("Chapter not found"));
+        if (!chapter.getStory().getId().equals(storyId)) {
+            throw new IllegalArgumentException("Chapter does not belong to story");
+        }
+
+        // If chapter number is changed, ensure uniqueness and move folder
+        int oldNumber = chapter.getChapterNumber();
+        int newNumber = request.chapterNumber;
+        if (oldNumber != newNumber) {
+            Optional<ChapterEntity> conflict = chapterRepository.findByStoryAndChapterNumber(story, newNumber);
+            if (conflict.isPresent()) {
+                throw new IllegalArgumentException("Chapter number " + newNumber + " already exists for story id " + storyId);
+            }
+            // perform filesystem move if folder exists
+            String slug = SlugUtil.slugify(story.getTitle());
+            Path storyDir = publicImagesDir.resolve(slug);
+            Path oldDir = storyDir.resolve(String.valueOf(oldNumber));
+            Path newDir = storyDir.resolve(String.valueOf(newNumber));
+            try {
+                if (Files.exists(oldDir)) {
+                    Files.createDirectories(newDir.getParent());
+                    Files.move(oldDir, newDir, StandardCopyOption.REPLACE_EXISTING);
+                }
+            } catch (IOException e) {
+                throw new RuntimeException("Failed to rename chapter folder on disk: " + e.getMessage(), e);
+            }
+            chapter.setChapterNumber(newNumber);
+        }
+
+        // update other fields
+        chapter.setTitle(request.title == null ? chapter.getTitle() : request.title);
+        chapter.setImageIds(request.imageIds == null ? chapter.getImageIds() : String.join(",", request.imageIds));
+
+        chapter = chapterRepository.save(chapter);
+        return toDto(chapter);
+    }
+
+    @Override
+    public void deleteChapter(Long storyId, Long chapterId) {
+        StoryEntity story = storyRepository.findById(storyId).orElseThrow(() -> new IllegalArgumentException("Story not found"));
+        ChapterEntity chapter = chapterRepository.findById(chapterId).orElseThrow(() -> new IllegalArgumentException("Chapter not found"));
+        if (!chapter.getStory().getId().equals(storyId)) {
+            throw new IllegalArgumentException("Chapter does not belong to story");
+        }
+
+        // remove files on disk: /{publicDir}/images/{slug}/{chapterNumber}
+        String slug = SlugUtil.slugify(story.getTitle());
+        Path chapterDir = publicImagesDir.resolve(slug).resolve(String.valueOf(chapter.getChapterNumber()));
+        try {
+            if (Files.exists(chapterDir)) {
+                try (Stream<Path> walk = Files.walk(chapterDir)) {
+                    walk.sorted(Comparator.reverseOrder())
+                            .forEach(path -> {
+                                try {
+                                    Files.deleteIfExists(path);
+                                } catch (IOException ex) {
+                                    throw new RuntimeException("Failed to delete file: " + path + " -> " + ex.getMessage(), ex);
+                                }
+                            });
+                }
+            }
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to delete chapter folder on disk: " + e.getMessage(), e);
+        }
+
+        chapterRepository.delete(chapter);
     }
 
     private StoryDtos.ChapterResponse toDto(ChapterEntity c) {
