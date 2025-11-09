@@ -8,6 +8,6 @@ public interface IStoryService {
     StoryDtos.StoryResponse createStory(Long authorId, StoryDtos.CreateStoryRequest request);
     StoryDtos.StoryResponse getStory(Long id);
     List<StoryDtos.StoryResponse> listStories();
+    StoryDtos.StoryResponse updateStory(Long authorId, Long storyId, StoryDtos.UpdateStoryRequest request);
+    void deleteStory(Long authorId, Long storyId);
 }
-
-

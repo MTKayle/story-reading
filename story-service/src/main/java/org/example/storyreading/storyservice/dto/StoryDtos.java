@@ -40,6 +40,12 @@ public class StoryDtos {
         public Long userId;
         public boolean purchased;
     }
+    public static class UpdateStoryRequest {
+        public String title;
+        public String description;
+        public List<String> genres;
+        public String coverImageId;
+        public Boolean paid;
+        public Long price;
+    }
 }
-
-

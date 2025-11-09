@@ -33,6 +33,20 @@ public class StoryController {
     public ResponseEntity<List<StoryDtos.StoryResponse>> listStories() {
         return ResponseEntity.ok(storyService.listStories());
     }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<StoryDtos.StoryResponse> updateStory(
+            @RequestHeader(value = "X-User-Id") Long userId,
+            @PathVariable Long id,
+            @RequestBody StoryDtos.UpdateStoryRequest request) {
+        return ResponseEntity.ok(storyService.updateStory(userId, id, request));
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteStory(
+            @RequestHeader(value = "X-User-Id") Long userId,
+            @PathVariable Long id) {
+        storyService.deleteStory(userId, id);
+        return ResponseEntity.noContent().build();
+    }
 }
-
-
