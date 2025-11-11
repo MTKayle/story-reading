@@ -49,6 +49,21 @@ public class PurchaseService implements IPurchaseService {
         StoryEntity story = storyRepository.findById(storyId).orElseThrow(() -> new IllegalArgumentException("Story not found"));
         return purchaseRepository.existsByUserIdAndStory(userId, story);
     }
+
+    @Override
+    public void grantAccess(Long userId, Long storyId) {
+        StoryEntity story = storyRepository.findById(storyId)
+                .orElseThrow(() -> new IllegalArgumentException("Story not found with id: " + storyId));
+
+        // Check if already purchased to avoid duplicates
+        if (purchaseRepository.existsByUserIdAndStory(userId, story)) {
+            return; // Already has access
+        }
+
+        // Create purchase record to grant access
+        PurchaseEntity purchase = new PurchaseEntity();
+        purchase.setUserId(userId);
+        purchase.setStory(story);
+        purchaseRepository.save(purchase);
+    }
 }
-
-

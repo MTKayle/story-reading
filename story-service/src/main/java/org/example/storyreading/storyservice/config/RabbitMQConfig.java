@@ -1,4 +1,4 @@
-package org.example.storyreading.paymentservice.config;
+package org.example.storyreading.storyservice.config;
 
 import org.springframework.amqp.core.Binding;
 import org.springframework.amqp.core.BindingBuilder;
@@ -14,28 +14,13 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class RabbitMQConfig {
 
-    public static final String PAYMENT_EXCHANGE = "payment.exchange";
-    public static final String PAYMENT_QUEUE = "payment.queue";
-    public static final String PAYMENT_ROUTING_KEY = "payment.success";
-
-    // Story purchase configuration
     public static final String STORY_PURCHASE_EXCHANGE = "story.purchase.exchange";
     public static final String STORY_PURCHASE_QUEUE = "story.purchase.queue";
     public static final String STORY_PURCHASE_ROUTING_KEY = "story.purchase.success";
 
     @Bean
-    public Queue paymentQueue() {
-        return new Queue(PAYMENT_QUEUE, true);
-    }
-
-    @Bean
     public Queue storyPurchaseQueue() {
         return new Queue(STORY_PURCHASE_QUEUE, true);
-    }
-
-    @Bean
-    public TopicExchange paymentExchange() {
-        return new TopicExchange(PAYMENT_EXCHANGE);
     }
 
     @Bean
@@ -44,13 +29,10 @@ public class RabbitMQConfig {
     }
 
     @Bean
-    public Binding paymentBinding(Queue paymentQueue, TopicExchange paymentExchange) {
-        return BindingBuilder.bind(paymentQueue).to(paymentExchange).with(PAYMENT_ROUTING_KEY);
-    }
-
-    @Bean
     public Binding storyPurchaseBinding() {
-        return BindingBuilder.bind(storyPurchaseQueue()).to(storyPurchaseExchange()).with(STORY_PURCHASE_ROUTING_KEY);
+        return BindingBuilder.bind(storyPurchaseQueue())
+                .to(storyPurchaseExchange())
+                .with(STORY_PURCHASE_ROUTING_KEY);
     }
 
     @Bean
@@ -65,3 +47,4 @@ public class RabbitMQConfig {
         return rabbitTemplate;
     }
 }
+

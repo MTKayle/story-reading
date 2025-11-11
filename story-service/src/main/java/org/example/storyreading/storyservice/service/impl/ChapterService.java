@@ -4,6 +4,7 @@ import org.example.storyreading.storyservice.dto.StoryDtos;
 import org.example.storyreading.storyservice.entity.ChapterEntity;
 import org.example.storyreading.storyservice.entity.StoryEntity;
 import org.example.storyreading.storyservice.repository.ChapterRepository;
+import org.example.storyreading.storyservice.repository.PurchaseRepository;
 import org.example.storyreading.storyservice.repository.StoryRepository;
 import org.example.storyreading.storyservice.service.IChapterService;
 import org.example.storyreading.storyservice.util.SlugUtil;
@@ -24,12 +25,16 @@ public class ChapterService implements IChapterService {
 
     private final ChapterRepository chapterRepository;
     private final StoryRepository storyRepository;
+    private final PurchaseRepository purchaseRepository;
     private final Path publicImagesDir;
 
-    public ChapterService(ChapterRepository chapterRepository, StoryRepository storyRepository,
+    public ChapterService(ChapterRepository chapterRepository,
+                          StoryRepository storyRepository,
+                          PurchaseRepository purchaseRepository,
                           @Value("${storage.public-dir:public}") String publicDir) {
         this.chapterRepository = chapterRepository;
         this.storyRepository = storyRepository;
+        this.purchaseRepository = purchaseRepository;
         this.publicImagesDir = Paths.get(publicDir).resolve("images");
     }
 
@@ -56,13 +61,35 @@ public class ChapterService implements IChapterService {
     public List<StoryDtos.ChapterResponse> listChapters(Long storyId) {
         StoryEntity story = storyRepository.findById(storyId).orElseThrow(() -> new IllegalArgumentException("Story not found"));
         return chapterRepository.findByStoryOrderByChapterNumberAsc(story)
-                .stream().map(this::toDto).collect(Collectors.toList());
+                .stream().map(this::toDtoListChapter).collect(Collectors.toList());
     }
 
     @Override
-    public StoryDtos.ChapterResponse getChapterForUser(Long chapterId) {
-        ChapterEntity c = chapterRepository.findById(chapterId).orElseThrow(() -> new IllegalArgumentException("Chapter not found"));
-        return toDto(c);
+    public StoryDtos.ChapterResponse getChapterForUser(Long chapterId, Long userId) {
+        ChapterEntity chapter = chapterRepository.findById(chapterId)
+                .orElseThrow(() -> new IllegalArgumentException("Chapter not found"));
+
+        StoryEntity story = chapter.getStory();
+
+        // Kiểm tra nếu truyện là paid (premium)
+        if (story.isPaid()) {
+            // Nếu là chapter 1 thì cho phép đọc miễn phí
+            if (chapter.getChapterNumber() == 1) {
+                return toDto(chapter);
+            }
+
+            // Nếu không phải chapter 1, kiểm tra user đã mua chưa
+            if (userId == null) {
+                throw new IllegalArgumentException("Truyện premium yêu cầu đăng nhập để đọc");
+            }
+
+            boolean hasPurchased = purchaseRepository.existsByUserIdAndStory(userId, story);
+            if (!hasPurchased) {
+                throw new IllegalArgumentException("Bạn cần mua truyện premium này để đọc chapter " + chapter.getChapterNumber());
+            }
+        }
+
+        return toDto(chapter);
     }
 
     @Override
@@ -143,6 +170,16 @@ public class ChapterService implements IChapterService {
         dto.chapterNumber = c.getChapterNumber();
         dto.title = c.getTitle();
         dto.imageIds = c.getImageIds() == null || c.getImageIds().isEmpty() ? null : Arrays.asList(c.getImageIds().split(","));
+        return dto;
+    }
+
+    private StoryDtos.ChapterResponse toDtoListChapter(ChapterEntity c) {
+        StoryDtos.ChapterResponse dto = new StoryDtos.ChapterResponse();
+        dto.id = c.getId();
+        dto.storyId = c.getStory().getId();
+        dto.chapterNumber = c.getChapterNumber();
+        dto.title = c.getTitle();
+        dto.imageIds = null;
         return dto;
     }
 }

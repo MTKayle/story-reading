@@ -22,6 +22,9 @@ public class Payment {
     @Column(name = "user_id", nullable = false)
     private Long userId;
     
+    @Column(name = "story_id")
+    private Long storyId;
+
     @Column(name = "transaction_id", unique = true, nullable = false)
     private String transactionId;
     
@@ -85,6 +88,14 @@ public class Payment {
 
     public void setUserId(Long userId) {
         this.userId = userId;
+    }
+
+    public Long getStoryId() {
+        return storyId;
+    }
+
+    public void setStoryId(Long storyId) {
+        this.storyId = storyId;
     }
 
     public String getTransactionId() {
@@ -167,4 +178,3 @@ public class Payment {
         this.updatedAt = updatedAt;
     }
 }
-

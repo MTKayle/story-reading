@@ -2,6 +2,7 @@ package org.example.storyreading.storyservice.controller;
 
 import org.example.storyreading.storyservice.dto.StoryDtos;
 import org.example.storyreading.storyservice.service.IChapterService;
+import org.example.storyreading.storyservice.util.JwtUtil;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -12,9 +13,11 @@ import java.util.List;
 public class ChapterController {
 
     private final IChapterService chapterService;
+    private final JwtUtil jwtUtil;
 
-    public ChapterController(IChapterService chapterService) {
+    public ChapterController(IChapterService chapterService, JwtUtil jwtUtil) {
         this.chapterService = chapterService;
+        this.jwtUtil = jwtUtil;
     }
 
     @PostMapping("/{storyId}/chapters")
@@ -32,8 +35,17 @@ public class ChapterController {
 
     @GetMapping("/chapters/{chapterId}")
     public ResponseEntity<StoryDtos.ChapterResponse> getChapter(
+            @RequestHeader(value = "Authorization", required = false) String authorizationHeader,
+            @RequestHeader(value = "X-User-Id", required = false) Long headerUserId,
             @PathVariable Long chapterId) {
-        return ResponseEntity.ok(chapterService.getChapterForUser(chapterId));
+
+        // Ưu tiên: 1) X-User-Id header, 2) JWT token, 3) null
+        Long userId = headerUserId;
+        if (userId == null && authorizationHeader != null) {
+            userId = jwtUtil.extractUserIdFromHeader(authorizationHeader);
+        }
+
+        return ResponseEntity.ok(chapterService.getChapterForUser(chapterId, userId));
     }
 
     @PutMapping("/{storyId}/chapters/{chapterId}")

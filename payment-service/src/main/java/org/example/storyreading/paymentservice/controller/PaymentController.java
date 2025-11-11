@@ -3,9 +3,11 @@ package org.example.storyreading.paymentservice.controller;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import org.example.storyreading.paymentservice.dto.DepositRequest;
+import org.example.storyreading.paymentservice.dto.PurchaseStoryRequest;
 import org.example.storyreading.paymentservice.dto.VNPayResponse;
 import org.example.storyreading.paymentservice.entity.Payment;
 import org.example.storyreading.paymentservice.service.PaymentService;
+import org.example.storyreading.paymentservice.service.StoryPurchaseService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.view.RedirectView;
@@ -27,10 +29,12 @@ public class PaymentController {
     private static final Logger log = LoggerFactory.getLogger(PaymentController.class);
 
     private final PaymentService paymentService;
+    private final StoryPurchaseService storyPurchaseService;
 
     // Explicit constructor to initialize final field (avoids Lombok dependency)
-    public PaymentController(PaymentService paymentService) {
+    public PaymentController(PaymentService paymentService, StoryPurchaseService storyPurchaseService) {
         this.paymentService = paymentService;
+        this.storyPurchaseService = storyPurchaseService;
     }
 
     @PostMapping(value = "/deposit",
@@ -45,6 +49,25 @@ public class PaymentController {
         return ResponseEntity.ok()
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(response);
+    }
+
+    @PostMapping(value = "/purchase-story",
+                 consumes = MediaType.APPLICATION_JSON_VALUE,
+                 produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<?> purchaseStory(
+            @RequestHeader("X-User-Id") Long userId,
+            @Valid @RequestBody PurchaseStoryRequest request) {
+
+        log.info("Story purchase request from user: {}, storyId: {}, price: {}",
+                userId, request.getStoryId(), request.getPrice());
+
+        try {
+            Payment payment = storyPurchaseService.purchaseStory(userId, request);
+            return ResponseEntity.ok(payment);
+        } catch (Exception e) {
+            log.error("Story purchase failed: {}", e.getMessage());
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
     }
 
     @GetMapping("/vnpay/callback")
