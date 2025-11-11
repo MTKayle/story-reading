@@ -2,6 +2,7 @@ package org.example.storyreading.userservice.entity;
 
 import jakarta.persistence.*;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -34,6 +35,10 @@ public class UserEntity {
 
     @Column(name = "updated_at")
     private LocalDateTime updatedAt = LocalDateTime.now();
+
+    //balance user
+    @Column(name = "balance", nullable = false, columnDefinition = "numeric(38,2) default 0")
+    private BigDecimal balance = BigDecimal.ZERO;
 
     // Quan hệ N:1 (nhiều user có cùng 1 role)
     @ManyToOne(fetch = FetchType.EAGER)
@@ -129,6 +134,14 @@ public class UserEntity {
 
     public void setUpdatedAt(LocalDateTime updatedAt) {
         this.updatedAt = updatedAt;
+    }
+
+    public BigDecimal getBalance() {
+        return balance;
+    }
+
+    public void setBalance(BigDecimal balance) {
+        this.balance = balance;
     }
 
     public RoleEntity getRole() {

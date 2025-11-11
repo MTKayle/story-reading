@@ -3,6 +3,7 @@ package org.example.storyreading.apigateway.filter;
 import org.springframework.cloud.gateway.filter.GatewayFilterChain;
 import org.springframework.cloud.gateway.filter.GlobalFilter;
 import org.springframework.core.Ordered;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.http.server.reactive.ServerHttpResponse;
@@ -16,16 +17,19 @@ import java.util.List;
 public class RoleAuthorizationFilter implements GlobalFilter, Ordered {
 
     private static final List<String> ADMIN_ENDPOINTS = List.of(
-            "/api/admin"
+            "/api/admin",
+            "/api/story"  // Giả sử các endpoint quản lý truyện yêu cầu quyền ADMIN
+
     );
 
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
         ServerHttpRequest request = exchange.getRequest();
         String path = request.getURI().getPath();
+        HttpMethod method = request.getMethod();
 
         // Kiểm tra nếu là admin endpoint
-        if (isAdminEndpoint(path)) {
+        if (isAdminEndpoint(path) && isWriteMethod(method.name())) {
             String userRole = request.getHeaders().getFirst("X-User-Role");
             
             if (userRole == null || !userRole.equals("ADMIN")) {
@@ -39,6 +43,14 @@ public class RoleAuthorizationFilter implements GlobalFilter, Ordered {
     private boolean isAdminEndpoint(String path) {
         return ADMIN_ENDPOINTS.stream().anyMatch(path::startsWith);
     }
+
+
+    private boolean isWriteMethod(String method) {
+        return method.equalsIgnoreCase("POST")
+                || method.equalsIgnoreCase("PUT")
+                || method.equalsIgnoreCase("DELETE");
+    }
+
 
     private Mono<Void> onError(ServerWebExchange exchange, String message, HttpStatus status) {
         ServerHttpResponse response = exchange.getResponse();
