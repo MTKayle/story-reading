@@ -8,6 +8,7 @@ import org.example.storyreading.storyservice.repository.StoryRepository;
 import org.example.storyreading.storyservice.service.IStoryService;
 import org.example.storyreading.storyservice.util.SlugUtil;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -150,6 +151,21 @@ public class StoryService implements IStoryService {
         } catch (IOException e) {
             throw new RuntimeException("Failed to delete story image folder: " + e.getMessage(), e);
         }
+    }
+
+    @Override
+    public List<StoryDtos.StoryResponse> searchByTitle(String title) {
+        if (title == null || title.isBlank()) return Collections.emptyList();
+        List<StoryEntity> list = storyRepository.findByTitleContainingIgnoreCase(title);
+        return list.stream().map(this::toDto).collect(Collectors.toList());
+    }
+
+    @Override
+    public List<StoryDtos.StoryResponse> getStoriesByGenre(String genre, int page, int size) {
+        if (genre == null || genre.isBlank()) return Collections.emptyList();
+        var pageable = PageRequest.of(Math.max(0, page), Math.max(1, size));
+        return storyRepository.findByGenresContainingIgnoreCase(genre, pageable)
+                .stream().map(this::toDto).collect(Collectors.toList());
     }
 
     private StoryDtos.StoryResponse toDto(StoryEntity s) {
