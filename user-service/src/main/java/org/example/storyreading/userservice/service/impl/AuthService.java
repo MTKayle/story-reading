@@ -46,13 +46,42 @@ public class AuthService implements IAuthService {
     @Override
     @Transactional
     public AuthDtos.AuthResponse register(AuthDtos.RegisterRequest request) {
-        if (userRepository.existsByUsername(request.username)) {
+        // Username là bắt buộc, lấy từ request.username hoặc request.name
+        String username = request.username;
+        if (username == null || username.trim().isEmpty()) {
+            if (request.name != null && !request.name.trim().isEmpty()) {
+                username = request.name.trim();
+            } else {
+                throw new IllegalArgumentException("Username hoặc tên là bắt buộc");
+            }
+        }
+        username = username.trim();
+
+        // Kiểm tra username đã tồn tại
+        if (userRepository.existsByUsername(username)) {
             throw new IllegalArgumentException("Username đã tồn tại");
         }
-        if (userRepository.existsByEmail(request.email)) {
-            throw new IllegalArgumentException("Email đã tồn tại");
+        
+        // Email là tùy chọn, nhưng nếu có thì phải unique
+        String email = request.email;
+        if (email != null && !email.trim().isEmpty()) {
+            email = email.trim();
+            // Kiểm tra email hợp lệ
+            if (!email.contains("@")) {
+                throw new IllegalArgumentException("Email không hợp lệ");
+            }
+            // Chặn đăng ký với email admin
+            if ("thanhvanguyen90@gmail.com".equalsIgnoreCase(email)) {
+                throw new IllegalArgumentException("Email này không thể được sử dụng để đăng ký");
+            }
+            if (userRepository.existsByEmail(email)) {
+                throw new IllegalArgumentException("Email đã tồn tại");
+            }
+        } else {
+            email = null; // Email không bắt buộc
         }
 
+        // Luôn tạo user với role USER - không cho phép đăng ký admin
         RoleEntity role = roleRepository.findByName("USER")
                 .orElseGet(() -> {
                     RoleEntity r = new RoleEntity();
@@ -61,30 +90,63 @@ public class AuthService implements IAuthService {
                 });
 
         UserEntity user = new UserEntity();
-        user.setUsername(request.username);
-        user.setEmail(request.email);
+        user.setUsername(username);
+        user.setEmail(email); // Có thể là null
         user.setPassword(passwordEncoder.encode(request.password));
         user.setRole(role);
-        user = userRepository.save(user);
+        user = userRepository.save(user); // Lưu vào database
 
-        String accessToken = jwtUtils.generateToken(user.getId(), user.getUsername(), role.getName(), user.getEmail());
+        // Tạo token với email có thể null
+        String userEmail = user.getEmail() != null ? user.getEmail() : "";
+        String accessToken = jwtUtils.generateToken(user.getId(), user.getUsername(), role.getName(), userEmail);
         String refreshToken = issueOrRotateRefreshToken(user);
-        return new AuthDtos.AuthResponse(accessToken, refreshToken);
+        
+        // Tạo UserDto để trả về
+        org.example.storyreading.userservice.dto.UserDto userDto = new org.example.storyreading.userservice.dto.UserDto();
+        userDto.id = user.getId();
+        userDto.username = user.getUsername();
+        userDto.email = user.getEmail(); // Có thể null
+        userDto.avatarUrl = user.getAvatarUrl();
+        userDto.bio = user.getBio();
+        userDto.role = user.getRole().getName();
+        
+        return new AuthDtos.AuthResponse(accessToken, refreshToken, userDto);
     }
 
     @Override
     @Transactional(readOnly = true)
     public AuthDtos.AuthResponse login(AuthDtos.LoginRequest request) {
-        Optional<UserEntity> userOpt = userRepository.findByUsernameOrEmail(request.usernameOrEmail, request.usernameOrEmail);
+        // Hỗ trợ cả usernameOrEmail và email
+        String identifier = request.usernameOrEmail;
+        if (identifier == null || identifier.trim().isEmpty()) {
+            identifier = request.email;
+        }
+        
+        if (identifier == null || identifier.trim().isEmpty()) {
+            throw new IllegalArgumentException("Vui lòng nhập email hoặc username");
+        }
+
+        Optional<UserEntity> userOpt = userRepository.findByUsernameOrEmail(identifier, identifier);
         UserEntity user = userOpt.orElseThrow(() -> new IllegalArgumentException("Sai thông tin đăng nhập"));
 
         if (!passwordEncoder.matches(request.password, user.getPassword())) {
             throw new IllegalArgumentException("Sai thông tin đăng nhập");
         }
 
-        String accessToken = jwtUtils.generateToken(user.getId(), user.getUsername(), user.getRole().getName(), user.getEmail());
+        String userEmail = user.getEmail() != null ? user.getEmail() : "";
+        String accessToken = jwtUtils.generateToken(user.getId(), user.getUsername(), user.getRole().getName(), userEmail);
         String refreshToken = ensureRefreshToken(user);
-        return new AuthDtos.AuthResponse(accessToken, refreshToken);
+        
+        // Tạo UserDto để trả về
+        org.example.storyreading.userservice.dto.UserDto userDto = new org.example.storyreading.userservice.dto.UserDto();
+        userDto.id = user.getId();
+        userDto.username = user.getUsername();
+        userDto.email = user.getEmail();
+        userDto.avatarUrl = user.getAvatarUrl();
+        userDto.bio = user.getBio();
+        userDto.role = user.getRole().getName();
+        
+        return new AuthDtos.AuthResponse(accessToken, refreshToken, userDto);
     }
 
     @Override
@@ -100,11 +162,22 @@ public class AuthService implements IAuthService {
         }
 
         UserEntity user = token.getUser();
-        String accessToken = jwtUtils.generateToken(user.getId(), user.getUsername(), user.getRole().getName(), user.getEmail());
+        String userEmail = user.getEmail() != null ? user.getEmail() : "";
+        String accessToken = jwtUtils.generateToken(user.getId(), user.getUsername(), user.getRole().getName(), userEmail);
 
         // Rotate refresh token để tăng bảo mật
         String newRefresh = rotateRefreshToken(user);
-        return new AuthDtos.AuthResponse(accessToken, newRefresh);
+        
+        // Tạo UserDto để trả về
+        org.example.storyreading.userservice.dto.UserDto userDto = new org.example.storyreading.userservice.dto.UserDto();
+        userDto.id = user.getId();
+        userDto.username = user.getUsername();
+        userDto.email = user.getEmail();
+        userDto.avatarUrl = user.getAvatarUrl();
+        userDto.bio = user.getBio();
+        userDto.role = user.getRole().getName();
+        
+        return new AuthDtos.AuthResponse(accessToken, newRefresh, userDto);
     }
 
     private String ensureRefreshToken(UserEntity user) {
