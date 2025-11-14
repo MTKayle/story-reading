@@ -4,6 +4,7 @@ import org.example.storyreading.apigateway.security.JwtUtils;
 import org.springframework.cloud.gateway.filter.GatewayFilterChain;
 import org.springframework.cloud.gateway.filter.GlobalFilter;
 import org.springframework.core.Ordered;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.http.server.reactive.ServerHttpResponse;
@@ -25,8 +26,23 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
     private static final List<String> PUBLIC_ENDPOINTS = List.of(
             "/api/auth/register",
             "/api/auth/login",
-            "/api/auth/refresh"
+            "/api/auth/refresh",
+            "/public/"
     );
+
+    // Các endpoint public cho phép truy cập GET mà không cần xác thực
+    private static  final List<String> PUBLIC_GET_ENDPOINTS = List.of(
+            "/api/story"// Cho phép truy cập công khai đến các truyện công khai
+    );
+
+    //ham kiem tra public get endpoint
+    private boolean isPublicGetEndpoint(String path) {
+        return PUBLIC_GET_ENDPOINTS.stream().anyMatch(path::startsWith);
+    }
+
+
+
+
 
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
@@ -35,6 +51,13 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
 
         // Cho phép các endpoint public
         if (isPublicEndpoint(path)) {
+            return chain.filter(exchange);
+        }
+
+        HttpMethod method = request.getMethod();
+
+        // Cho phép các GET request đến public GET endpoints mà không cần xác thực
+        if (method.name().equalsIgnoreCase("GET") && isPublicGetEndpoint(path)) {
             return chain.filter(exchange);
         }
 
