@@ -37,10 +37,45 @@ public class CommentController {
     }
 
     // xóa bình luận (đặt isDeleted = "Yes")
+    // Chỉ cho phép xóa trong vòng 5 phút sau khi đăng và chỉ chủ bình luận mới được xóa
     @PutMapping("/{id}/delete")
-    public ResponseEntity<Comment> deleteComment(@PathVariable Long id) {
-        Comment deleted = commentService.deleteComment(id);
-        return ResponseEntity.ok(deleted);
+    public ResponseEntity<?> deleteComment(@PathVariable Long id, @RequestBody(required = false) Map<String, Object> body) {
+        try {
+            System.out.println("Delete comment request - id: " + id + ", body: " + body);
+            
+            if (body == null || body.get("userId") == null) {
+                System.err.println("Missing userId in request body");
+                return ResponseEntity.badRequest().body(Map.of("error", "userId là bắt buộc"));
+            }
+            
+            Long userId;
+            try {
+                Object userIdObj = body.get("userId");
+                if (userIdObj instanceof Number) {
+                    userId = ((Number) userIdObj).longValue();
+                } else {
+                    userId = Long.valueOf(userIdObj.toString());
+                }
+                System.out.println("Parsed userId: " + userId);
+            } catch (NumberFormatException e) {
+                System.err.println("Invalid userId format: " + e.getMessage());
+                return ResponseEntity.badRequest().body(Map.of("error", "userId không hợp lệ"));
+            }
+            
+            System.out.println("Calling deleteComment service - id: " + id + ", userId: " + userId);
+            Comment deleted = commentService.deleteComment(id, userId);
+            System.out.println("Comment deleted successfully: " + deleted.getId());
+            
+            return ResponseEntity.ok(deleted);
+        } catch (RuntimeException e) {
+            System.err.println("RuntimeException in deleteComment: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        } catch (Exception e) {
+            System.err.println("Exception in deleteComment: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.status(500).body(Map.of("error", "Lỗi khi xóa bình luận: " + e.getMessage()));
+        }
     }
 
     // chặn bình luận (đặt isDeleted = "Blocked")
@@ -57,8 +92,8 @@ public class CommentController {
     }
 
     @GetMapping("/story/{storyId}/root")
-    public ResponseEntity<List<Comment>> getRootCommentsByStoryId(@PathVariable Long storyId) {
-        List<Comment> rootComments = commentService.getRootCommentsByStoryId(storyId);
+    public ResponseEntity<List<CommentResponse>> getRootCommentsByStoryId(@PathVariable Long storyId) {
+        List<CommentResponse> rootComments = commentService.getRootCommentsByStoryId(storyId);
         return ResponseEntity.ok(rootComments);
     }
 }

@@ -141,4 +141,25 @@ public class ReactionServiceImpl implements ReactionService {
         }
         return counts;
     }
+
+    @Override
+    public Reaction getUserReaction(Long userId, Long commentId) {
+        System.out.println("getUserReaction called - userId: " + userId + ", commentId: " + commentId);
+        
+        if (userId == null || commentId == null) {
+            System.err.println("getUserReaction: userId or commentId is null");
+            return null;
+        }
+        
+        Reaction reaction = reactionRepository.findByUserIdAndCommentId(userId, commentId)
+                .orElse(null);
+        
+        if (reaction == null) {
+            System.out.println("getUserReaction: No reaction found for userId=" + userId + ", commentId=" + commentId);
+        } else {
+            System.out.println("getUserReaction: Found reaction id=" + reaction.getId() + ", type=" + reaction.getType());
+        }
+        
+        return reaction;
+    }
 }

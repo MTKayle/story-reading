@@ -10,9 +10,9 @@ public interface CommentService {
     CommentResponse createComment(CommentRequest request);
     List<CommentResponse> getCommentsByChapterAndStory(Long chapterId, Long storyId);
     Comment updateComment(Long id, String newContent);
-    Comment deleteComment(Long id);
+    Comment deleteComment(Long id, Long userId);
     Comment blockComment(Long id);
     void deleteCommentsByStoryId(Long storyId);
-    List<Comment> getRootCommentsByStoryId(Long storyId);
+    List<CommentResponse> getRootCommentsByStoryId(Long storyId);
 }
 

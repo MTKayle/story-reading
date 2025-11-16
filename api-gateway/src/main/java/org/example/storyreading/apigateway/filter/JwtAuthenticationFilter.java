@@ -32,7 +32,9 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
 
     // Các endpoint public cho phép truy cập GET mà không cần xác thực
     private static  final List<String> PUBLIC_GET_ENDPOINTS = List.of(
-            "/api/story"// Cho phép truy cập công khai đến các truyện công khai
+            "/api/story", // Cho phép truy cập công khai đến các truyện công khai
+            "/api/comments", // Cho phép đọc bình luận công khai
+            "/api/user" // Cho phép đọc thông tin user công khai (để hiển thị tên/avatar trong comment)
     );
 
     //ham kiem tra public get endpoint
@@ -64,6 +66,36 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
         // Kiểm tra token cho các endpoint khác
         String authHeader = request.getHeaders().getFirst("Authorization");
         
+        // Xử lý POST comments - yêu cầu authentication
+        if (path.startsWith("/api/comments") && method.name().equalsIgnoreCase("POST")) {
+            if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+                return onError(exchange, "Authentication required to create comment", HttpStatus.UNAUTHORIZED);
+            }
+            
+            String token = authHeader.substring(7);
+            if (!jwtUtils.validateToken(token)) {
+                return onError(exchange, "Invalid or expired token", HttpStatus.UNAUTHORIZED);
+            }
+            
+            // Token hợp lệ, thêm user info và tiếp tục
+            try {
+                Long userId = jwtUtils.extractUserId(token);
+                String role = jwtUtils.extractRole(token);
+                String username = jwtUtils.extractUsername(token);
+
+                ServerHttpRequest modifiedRequest = request.mutate()
+                        .header("X-User-Id", userId != null ? userId.toString() : "")
+                        .header("X-User-Role", role != null ? role : "")
+                        .header("X-Username", username != null ? username : "")
+                        .build();
+
+                return chain.filter(exchange.mutate().request(modifiedRequest).build());
+            } catch (Exception e) {
+                return onError(exchange, "Error processing token", HttpStatus.UNAUTHORIZED);
+            }
+        }
+        
+        // Các endpoint khác yêu cầu token bắt buộc
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
             return onError(exchange, "Missing or invalid Authorization header", HttpStatus.UNAUTHORIZED);
         }

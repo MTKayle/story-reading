@@ -6,6 +6,7 @@ import org.example.storyreading.userservice.repository.UserRepository;
 import org.example.storyreading.userservice.security.JwtUtils;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -38,6 +39,23 @@ public class UserController {
         }
         Optional<UserEntity> userOpt = userRepository.findById(userId);
         if (userOpt.isEmpty()) return ResponseEntity.status(404).body(Map.of("error", "User not found"));
+        UserEntity user = userOpt.get();
+        UserDto dto = new UserDto();
+        dto.id = user.getId();
+        dto.username = user.getUsername();
+        dto.email = user.getEmail();
+        dto.avatarUrl = user.getAvatarUrl();
+        dto.bio = user.getBio();
+        dto.role = user.getRole().getName();
+        return ResponseEntity.ok(dto);
+    }
+
+    @GetMapping("/{userId}")
+    public ResponseEntity<?> getUserById(@PathVariable Long userId) {
+        Optional<UserEntity> userOpt = userRepository.findById(userId);
+        if (userOpt.isEmpty()) {
+            return ResponseEntity.status(404).body(Map.of("error", "User not found"));
+        }
         UserEntity user = userOpt.get();
         UserDto dto = new UserDto();
         dto.id = user.getId();
