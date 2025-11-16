@@ -13,5 +13,10 @@ public interface ReactionService {
     List<Long> getReactionIdByCommentId(Long commentId);
     void removeReactionById (Long reactionId);
     Map<Reaction.ReactionType, Long> getReactionCounts(Long commentId);
-}
 
+    // ✅ Methods cho Report (sử dụng ReactionType.REPORT)
+    ReactionResponse createReport(Long userId, Long commentId);
+    void removeReport(Long userId, Long commentId);
+    List<Reaction> getReportsByCommentId(Long commentId);
+    long getReportCount(Long commentId);
+}

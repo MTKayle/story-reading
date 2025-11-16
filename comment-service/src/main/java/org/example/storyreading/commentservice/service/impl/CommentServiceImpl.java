@@ -4,6 +4,7 @@ import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.example.storyreading.commentservice.dto.comment.CommentRequest;
 import org.example.storyreading.commentservice.dto.comment.CommentResponse;
+import org.example.storyreading.commentservice.dto.comment.CommentWithReportCountResponse;
 import org.example.storyreading.commentservice.entity.Comment;
 import org.example.storyreading.commentservice.event.comment.CommentDeletedEvent;
 import org.example.storyreading.commentservice.event.comment.CommentEventPublisher;
@@ -178,7 +179,42 @@ public class CommentServiceImpl implements CommentService {
     public List<Comment> getRootCommentsByStoryId(Long storyId) {
         return commentRepository.findByStoryIdAndChapterIdIsNullAndIsDeletedOrderByCreatedAtAsc(storyId, "No");
     }
+
+    @Override
+    public Long getUserIdByCommentId(Long commentId) {
+        Long userId = commentRepository.findUserIdByCommentId(commentId);
+        if (userId == null) {
+            throw new RuntimeException("Không tìm thấy bình luận có id = " + commentId);
+        }
+        return userId;
+    }
+
+    @Override
+    public List<CommentWithReportCountResponse> getAllCommentsWithReportsSortedByCount() {
+        // 1. Lấy tất cả comment có report
+        List<Comment> commentsWithReports = commentRepository.findAllCommentsWithReports();
+
+        // 2. Map sang DTO và đếm số lượng report cho mỗi comment
+        List<CommentWithReportCountResponse> result = commentsWithReports.stream()
+                .map(comment -> {
+                    long reportCount = reactionService.getReportCount(comment.getId());
+                    return CommentWithReportCountResponse.builder()
+                            .id(comment.getId())
+                            .storyId(comment.getStoryId())
+                            .chapterId(comment.getChapterId())
+                            .userId(comment.getUserId())
+                            .parentId(comment.getParentId())
+                            .content(comment.getContent())
+                            .isDeleted(comment.getIsDeleted())
+                            .createdAt(comment.getCreatedAt())
+                            .updatedAt(comment.getUpdatedAt())
+                            .reportCount(reportCount)
+                            .build();
+                })
+                // 3. Sắp xếp giảm dần theo số lượng report
+                .sorted((c1, c2) -> Long.compare(c2.getReportCount(), c1.getReportCount()))
+                .collect(Collectors.toList());
+
+        return result;
+    }
 }
-
-
-

@@ -3,6 +3,7 @@ package org.example.storyreading.commentservice.controller;
 import lombok.RequiredArgsConstructor;
 import org.example.storyreading.commentservice.dto.comment.CommentRequest;
 import org.example.storyreading.commentservice.dto.comment.CommentResponse;
+import org.example.storyreading.commentservice.dto.comment.CommentWithReportCountResponse;
 import org.example.storyreading.commentservice.entity.Comment;
 import org.example.storyreading.commentservice.service.CommentService;
 import org.springframework.http.ResponseEntity;
@@ -37,7 +38,7 @@ public class CommentController {
     }
 
     // xóa bình luận (đặt isDeleted = "Yes")
-    @PutMapping("/{id}/delete")
+    @DeleteMapping("/{id}/delete")
     public ResponseEntity<Comment> deleteComment(@PathVariable Long id) {
         Comment deleted = commentService.deleteComment(id);
         return ResponseEntity.ok(deleted);
@@ -61,6 +62,18 @@ public class CommentController {
         List<Comment> rootComments = commentService.getRootCommentsByStoryId(storyId);
         return ResponseEntity.ok(rootComments);
     }
+
+    // Lấy userId từ commentId
+    @GetMapping("/{commentId}/user")
+    public ResponseEntity<Long> getUserIdByCommentId(@PathVariable Long commentId) {
+        Long userId = commentService.getUserIdByCommentId(commentId);
+        return ResponseEntity.ok(userId);
+    }
+
+    // ✅ Lấy tất cả comment có report, sắp xếp giảm dần theo số lượng report
+    @GetMapping("/reports")
+    public ResponseEntity<List<CommentWithReportCountResponse>> getAllCommentsWithReports() {
+        List<CommentWithReportCountResponse> comments = commentService.getAllCommentsWithReportsSortedByCount();
+        return ResponseEntity.ok(comments);
+    }
 }
-
-

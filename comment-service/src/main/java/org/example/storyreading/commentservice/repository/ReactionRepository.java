@@ -16,4 +16,9 @@ public interface ReactionRepository extends JpaRepository<Reaction, Long> {
     // ✅ lấy danh sách id của reaction theo commentId
     @Query("SELECT r.id FROM Reaction r WHERE r.commentId = :commentId")
     List<Long> findIdsByCommentIdIn(@Param("commentId") Long commentId);
+
+    // ✅ Các method cho Report (sử dụng ReactionType.REPORT)
+    Optional<Reaction> findByUserIdAndCommentIdAndType(Long userId, Long commentId, ReactionType type);
+    List<Reaction> findByCommentIdAndType(Long commentId, ReactionType type);
+    void deleteByUserIdAndCommentIdAndType(Long userId, Long commentId, ReactionType type);
 }

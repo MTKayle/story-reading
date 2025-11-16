@@ -1,24 +1,5 @@
 package org.example.storyreading.commentservice.service.impl;
 
-//import jakarta.transaction.Transactional;
-//import lombok.RequiredArgsConstructor;
-//import org.example.storyreading.commentservice.dto.reaction.ReactionRequest;
-//import org.example.storyreading.commentservice.dto.reaction.ReactionResponse;
-//import org.example.storyreading.commentservice.entity.Reaction;
-//import org.example.storyreading.commentservice.entity.Reaction.ReactionType;
-//import org.example.storyreading.commentservice.event.reaction.ReactionDeletedEvent;
-//import org.example.storyreading.commentservice.event.reaction.ReactionEventPublisher;
-//import org.example.storyreading.commentservice.event.reaction.ReactionEvent;
-//import org.example.storyreading.commentservice.repository.ReactionRepository;
-//import org.example.storyreading.commentservice.service.ReactionService;
-//import org.springframework.messaging.simp.SimpMessagingTemplate;
-//import org.springframework.stereotype.Service;
-//
-//import java.util.HashMap;
-//import java.util.List;
-//import java.util.Map;
-//
-
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.example.storyreading.commentservice.dto.reaction.ReactionRequest;
@@ -140,5 +121,42 @@ public class ReactionServiceImpl implements ReactionService {
             counts.put(type, count);
         }
         return counts;
+    }
+
+    // ✅ Implement các method cho Report (sử dụng ReactionType.REPORT)
+    @Override
+    @Transactional
+    public ReactionResponse createReport(Long userId, Long commentId) {
+        // Kiểm tra user đã report comment này chưa
+        Reaction report = reactionRepository.findByUserIdAndCommentIdAndType(userId, commentId, ReactionType.REPORT)
+                .orElse(Reaction.builder()
+                        .userId(userId)
+                        .commentId(commentId)
+                        .type(ReactionType.REPORT)
+                        .build());
+
+        Reaction saved = reactionRepository.save(report);
+
+        return ReactionResponse.builder()
+                .commentId(saved.getCommentId())
+                .type(saved.getType())
+                .userId(saved.getUserId())
+                .build();
+    }
+
+    @Override
+    @Transactional
+    public void removeReport(Long userId, Long commentId) {
+        reactionRepository.deleteByUserIdAndCommentIdAndType(userId, commentId, ReactionType.REPORT);
+    }
+
+    @Override
+    public List<Reaction> getReportsByCommentId(Long commentId) {
+        return reactionRepository.findByCommentIdAndType(commentId, ReactionType.REPORT);
+    }
+
+    @Override
+    public long getReportCount(Long commentId) {
+        return reactionRepository.countByCommentIdAndType(commentId, ReactionType.REPORT);
     }
 }

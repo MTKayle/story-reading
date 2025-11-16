@@ -20,13 +20,16 @@ public class Notification {
     @Column(name = "recipient_id", nullable = false)
     private Long recipientId;
 
-    @Column(name = "sender_id", nullable = false)
+    @Column(name = "sender_id", nullable = true)
     private Long senderId;
 
     @Column(nullable = false)
     private String content;
 
-    @Column(nullable = false)
+    @Column(name = "is_read", nullable = false)
+    private Boolean isRead = false;
+
+    @Column(nullable = true)
     private String link;
 
     private Long typeId;
@@ -44,6 +47,9 @@ public class Notification {
         }
         if (isDeleted == null) {
             isDeleted = false;
+        }
+        if (isRead == null) {
+            isRead = false;
         }
     }
 }

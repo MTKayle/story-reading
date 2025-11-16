@@ -2,6 +2,7 @@ package org.example.storyreading.commentservice.service;
 
 import org.example.storyreading.commentservice.dto.comment.CommentRequest;
 import org.example.storyreading.commentservice.dto.comment.CommentResponse;
+import org.example.storyreading.commentservice.dto.comment.CommentWithReportCountResponse;
 import org.example.storyreading.commentservice.entity.Comment;
 
 import java.util.List;
@@ -14,5 +15,6 @@ public interface CommentService {
     Comment blockComment(Long id);
     void deleteCommentsByStoryId(Long storyId);
     List<Comment> getRootCommentsByStoryId(Long storyId);
+    Long getUserIdByCommentId(Long commentId);
+    List<CommentWithReportCountResponse> getAllCommentsWithReportsSortedByCount();
 }
-

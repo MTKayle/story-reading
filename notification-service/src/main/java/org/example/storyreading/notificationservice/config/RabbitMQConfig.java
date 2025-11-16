@@ -2,10 +2,13 @@ package org.example.storyreading.notificationservice.config;
 
 import org.example.storyreading.notificationservice.dto.comment.CommentDeletedEvent;
 import org.example.storyreading.notificationservice.dto.comment.CommentEvent;
+import org.example.storyreading.notificationservice.dto.deposit.DepositEvent;
+import org.example.storyreading.notificationservice.dto.payment.PaymentEvent;
 import org.example.storyreading.notificationservice.dto.reaction.ReactionDeletedEvent;
 import org.example.storyreading.notificationservice.dto.reaction.ReactionEvent;
 import org.example.storyreading.notificationservice.dto.rating.RatingDeletedEvent;
 import org.example.storyreading.notificationservice.dto.rating.RatingEvent;
+import org.example.storyreading.notificationservice.dto.story.NewChapterEvent;
 import org.springframework.amqp.core.*;
 import org.springframework.amqp.rabbit.config.SimpleRabbitListenerContainerFactory;
 import org.springframework.amqp.rabbit.connection.ConnectionFactory;
@@ -44,6 +47,22 @@ public class RabbitMQConfig {
     public static final String RATING_ROUTING_KEY = "rating.created";
     public static final String RATING_DELETE_QUEUE = "rating-delete-queue";
     public static final String RATING_DELETE_ROUTING_KEY = "rating.deleted";
+
+    // === DEPOSIT ===
+    public static final String DEPOSIT_EXCHANGE = "deposit-exchange";
+    public static final String DEPOSIT_QUEUE = "deposit-queue";
+    public static final String DEPOSIT_ROUTING_KEY = "deposit.created";
+
+    // === PAYMENT ===
+    public static final String PAYMENT_EXCHANGE = "payment-exchange";
+    public static final String PAYMENT_QUEUE = "payment-queue";
+    public static final String PAYMENT_ROUTING_KEY = "payment.created";
+
+    // === NEW CHAPTER ===
+    public static final String NEW_CHAPTER_EXCHANGE = "new-chapter-exchange";
+    public static final String NEW_CHAPTER_QUEUE = "new-chapter-queue";
+    public static final String NEW_CHAPTER_ROUTING_KEY = "new.chapter.created";
+
 
     // === COMMENT ===
     @Bean
@@ -123,6 +142,57 @@ public class RabbitMQConfig {
         return BindingBuilder.bind(ratingDeleteQueue).to(ratingExchange).with(RATING_DELETE_ROUTING_KEY);
     }
 
+    // === DEPOSIT ===
+    @Bean
+    public Queue depositQueue() {
+        return new Queue(DEPOSIT_QUEUE, true);
+    }
+
+    @Bean
+    public TopicExchange depositExchange() {
+        return new TopicExchange(DEPOSIT_EXCHANGE);
+    }
+
+    @Bean
+    public Binding depositBinding(Queue depositQueue, TopicExchange depositExchange) {
+        return BindingBuilder.bind(depositQueue).to(depositExchange).with(DEPOSIT_ROUTING_KEY);
+    }
+
+
+    // === PAYMENT ===
+    @Bean
+    public Queue paymentQueue() {
+        return new Queue(PAYMENT_QUEUE, true);
+    }
+
+    @Bean
+    public TopicExchange paymentExchange() {
+        return new TopicExchange(PAYMENT_EXCHANGE);
+    }
+
+    @Bean
+    public Binding paymentBinding(Queue paymentQueue, TopicExchange paymentExchange) {
+        return BindingBuilder.bind(paymentQueue).to(paymentExchange).with(PAYMENT_ROUTING_KEY);
+    }
+
+
+    // === NEW CHAPTER ===
+    @Bean
+    public Queue newChapterQueue() {
+        return new Queue(NEW_CHAPTER_QUEUE, true);
+    }
+
+    @Bean
+    public TopicExchange newChapterExchange() {
+        return new TopicExchange(NEW_CHAPTER_EXCHANGE);
+    }
+
+    @Bean
+    public Binding newChapterBinding(Queue newChapterQueue, TopicExchange newChapterExchange) {
+        return BindingBuilder.bind(newChapterQueue).to(newChapterExchange).with(NEW_CHAPTER_ROUTING_KEY);
+    }
+
+
     // === COMMON - CHỈ 1 BEAN ===
     @Bean
     public MessageConverter messageConverter() {
@@ -164,6 +234,36 @@ public class RabbitMQConfig {
         idClassMapping.put(
                 "org.example.storyreading.commentservice.event.rating.RatingDeletedEvent",
                 RatingDeletedEvent.class
+        );
+
+        // DepositEvent events (nếu có)
+        idClassMapping.put(
+                "org.example.storyreading.commentservice.event.DepositNotificationEvent",
+                DepositEvent.class
+        );
+        idClassMapping.put(
+                "org.example.storyreading.commentservice.event.deposit.DepositEvent",
+                DepositEvent.class
+        );
+
+        // PaymentEvent events (nếu có)
+        idClassMapping.put(
+                "org.example.storyreading.commentservice.event.PaymentNotificationEvent",
+                PaymentEvent.class
+        );
+        idClassMapping.put(
+                "org.example.storyreading.commentservice.event.payment.PaymentEvent",
+                PaymentEvent.class
+        );
+
+        // New Chapter events (nếu có)
+        idClassMapping.put(
+                "org.example.storyreading.commentservice.event.NewChapterNotificationEvent",
+                NewChapterEvent.class
+        );
+        idClassMapping.put(
+                "org.example.storyreading.commentservice.event.story.NewChapterEvent",
+                NewChapterEvent.class
         );
 
         typeMapper.setIdClassMapping(idClassMapping);

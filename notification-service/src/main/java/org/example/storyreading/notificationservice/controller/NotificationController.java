@@ -20,5 +20,20 @@ public class NotificationController {
         List<Notification> notifications = notificationService.getNotificationsForUser(recipientId);
         return ResponseEntity.ok(notifications);
     }
-}
 
+    // ✅ Đánh dấu thông báo đã đọc
+    @PutMapping("/{notificationId}/read")
+    public ResponseEntity<String> markAsRead(
+            @PathVariable Long notificationId,
+            @RequestParam Long recipientId) {
+        notificationService.markAsRead(notificationId, recipientId);
+        return ResponseEntity.ok("Đã đánh dấu đã đọc");
+    }
+
+    // ✅ Lấy số lượng thông báo chưa đọc
+    @GetMapping("/user/{recipientId}/unread-count")
+    public ResponseEntity<Long> getUnreadCount(@PathVariable Long recipientId) {
+        long count = notificationService.getUnreadCount(recipientId);
+        return ResponseEntity.ok(count);
+    }
+}

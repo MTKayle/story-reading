@@ -27,7 +27,8 @@ public class Reaction {
         HAHA,
         SAD,
         ANGRY,
-        WOW
+        WOW,
+        REPORT
     }
 }
 

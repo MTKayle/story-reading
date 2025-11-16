@@ -23,7 +23,8 @@ public interface CommentRepository extends JpaRepository<Comment, Long> {
     List<Long> findIdByParentId(Long parentId);
     // Lấy tất cả comment chưa xóa theo storyId và chapterId = null
     List<Comment> findByStoryIdAndChapterIdIsNullAndIsDeletedOrderByCreatedAtAsc(Long storyId, String isDeleted);
+
+    // ✅ Lấy tất cả comment có report (JOIN với bảng reaction)
+    @Query("SELECT DISTINCT c FROM Comment c JOIN Reaction r ON c.id = r.commentId WHERE r.type = 'REPORT'")
+    List<Comment> findAllCommentsWithReports();
 }
-
-
-
