@@ -11,16 +11,14 @@ public class PaymentEvent implements Serializable {
     private Long userId;
     private Long storyId;
     private String storyTitle; // Tên truyện (VD: "Đấu Phá Thương Khung")
-    private Long amount;
     private Long transactionId;
 
     public PaymentEvent() {}
 
-    public PaymentEvent(Long userId, Long storyId, String storyTitle, Long amount, Long transactionId) {
+    public PaymentEvent(Long userId, Long storyId, String storyTitle, Long transactionId) {
         this.userId = userId;
         this.storyId = storyId;
         this.storyTitle = storyTitle;
-        this.amount = amount;
         this.transactionId = transactionId;
     }
 
@@ -47,15 +45,6 @@ public class PaymentEvent implements Serializable {
 
     public void setStoryTitle(String storyTitle) {
         this.storyTitle = storyTitle;
-    }
-
-
-    public Long getAmount() {
-        return amount;
-    }
-
-    public void setAmount(Long amount) {
-        this.amount = amount;
     }
 
     public Long getTransactionId() {
