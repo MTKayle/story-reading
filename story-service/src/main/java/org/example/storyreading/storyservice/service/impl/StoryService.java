@@ -52,8 +52,16 @@ public class StoryService implements IStoryService {
     }
 
     @Override
+    @Transactional
     public StoryDtos.StoryResponse getStory(Long id) {
+        // Ensure story exists (if DB doesn't have view_count column this will still fail until migration is applied)
         StoryEntity s = storyRepository.findById(id).orElseThrow(() -> new IllegalArgumentException("Story not found"));
+
+        // Atomically increment view count at DB level to avoid race conditions
+        storyRepository.incrementViewCountById(id);
+
+        // Reload entity to get updated viewCount
+        s = storyRepository.findById(id).orElseThrow(() -> new IllegalArgumentException("Story not found"));
         return toDto(s);
     }
 
@@ -178,6 +186,7 @@ public class StoryService implements IStoryService {
         dto.paid = s.isPaid();
         dto.price = s.getPrice();
         dto.author = s.getAuthor();
+        dto.viewCount = s.getViewCount();
         return dto;
     }
 

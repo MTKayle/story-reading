@@ -21,6 +21,7 @@ public class StoryDtos {
         public boolean paid;
         public long price;
         public String author;
+        public long viewCount;
     }
     public static class CreateChapterRequest {
         public int chapterNumber;
