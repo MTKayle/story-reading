@@ -27,7 +27,8 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
             "/api/auth/register",
             "/api/auth/login",
             "/api/auth/refresh",
-            "/public/"
+            "/public/",
+            "/api/auth/google"
     );
 
     // Các endpoint public cho phép truy cập GET mà không cần xác thực

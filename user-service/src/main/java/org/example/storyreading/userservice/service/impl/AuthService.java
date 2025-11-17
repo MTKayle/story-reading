@@ -1,6 +1,8 @@
 package org.example.storyreading.userservice.service.impl;
 
 import org.example.storyreading.userservice.dto.AuthDtos;
+import org.example.storyreading.userservice.dto.GoogleLoginRequest;
+import org.example.storyreading.userservice.dto.GoogleUserInfo;
 import org.example.storyreading.userservice.entity.RefreshTokenEntity;
 import org.example.storyreading.userservice.entity.RoleEntity;
 import org.example.storyreading.userservice.entity.UserEntity;
@@ -8,6 +10,7 @@ import org.example.storyreading.userservice.repository.RefreshTokenRepository;
 import org.example.storyreading.userservice.repository.RoleRepository;
 import org.example.storyreading.userservice.repository.UserRepository;
 import org.example.storyreading.userservice.security.JwtUtils;
+import org.example.storyreading.userservice.service.GoogleOAuth2Service;
 import org.example.storyreading.userservice.service.IAuthService;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -27,6 +30,7 @@ public class AuthService implements IAuthService {
     private final RefreshTokenRepository refreshTokenRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtUtils jwtUtils;
+    private final GoogleOAuth2Service googleOAuth2Service;
 
     @Value("${refresh.expiration.minutes:43200}") // mặc định 30 ngày
     private long refreshExpirationMinutes;
@@ -35,12 +39,14 @@ public class AuthService implements IAuthService {
                        RoleRepository roleRepository,
                        RefreshTokenRepository refreshTokenRepository,
                        PasswordEncoder passwordEncoder,
-                       JwtUtils jwtUtils) {
+                       JwtUtils jwtUtils,
+                       GoogleOAuth2Service googleOAuth2Service) {
         this.userRepository = userRepository;
         this.roleRepository = roleRepository;
         this.refreshTokenRepository = refreshTokenRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtUtils = jwtUtils;
+        this.googleOAuth2Service = googleOAuth2Service;
     }
 
     @Override
@@ -107,6 +113,90 @@ public class AuthService implements IAuthService {
         return new AuthDtos.AuthResponse(accessToken, newRefresh);
     }
 
+    @Override
+    @Transactional
+    public AuthDtos.AuthResponse loginWithGoogle(GoogleLoginRequest request) {
+        // 1. Verify Google ID Token
+        GoogleUserInfo googleUserInfo = googleOAuth2Service.verifyGoogleToken(request.getIdToken());
+
+        if (googleUserInfo == null) {
+            throw new IllegalArgumentException("Google token không hợp lệ");
+        }
+
+        if (!googleUserInfo.isEmailVerified()) {
+            throw new IllegalArgumentException("Email chưa được xác thực bởi Google");
+        }
+
+        // 2. Tìm user theo Google ID hoặc Email
+        Optional<UserEntity> userOpt = userRepository.findByGoogleId(googleUserInfo.getGoogleId());
+
+        UserEntity user;
+        if (userOpt.isPresent()) {
+            // User đã tồn tại với Google ID này
+            user = userOpt.get();
+
+            // Cập nhật thông tin mới nhất từ Google
+            user.setAvatarUrl(googleUserInfo.getPicture());
+            user = userRepository.save(user);
+        } else {
+            // Kiểm tra xem email đã được đăng ký chưa
+            Optional<UserEntity> existingEmailUser = userRepository.findByEmail(googleUserInfo.getEmail());
+
+            if (existingEmailUser.isPresent()) {
+                // Email đã tồn tại nhưng chưa liên kết với Google
+                user = existingEmailUser.get();
+                user.setGoogleId(googleUserInfo.getGoogleId());
+                user.setAvatarUrl(googleUserInfo.getPicture());
+                user = userRepository.save(user);
+            } else {
+                // Tạo user mới từ Google account
+                RoleEntity role = roleRepository.findByName("USER")
+                        .orElseGet(() -> {
+                            RoleEntity r = new RoleEntity();
+                            r.setName("USER");
+                            return roleRepository.save(r);
+                        });
+
+                user = new UserEntity();
+                user.setGoogleId(googleUserInfo.getGoogleId());
+                user.setEmail(googleUserInfo.getEmail());
+
+                // Tạo username từ email hoặc name
+                String baseUsername = googleUserInfo.getEmail().split("@")[0];
+                String username = generateUniqueUsername(baseUsername);
+                user.setUsername(username);
+
+                // Set password random vì user đăng nhập bằng Google
+                user.setPassword(passwordEncoder.encode(UUID.randomUUID().toString()));
+
+                user.setAvatarUrl(googleUserInfo.getPicture());
+                user.setRole(role);
+                user = userRepository.save(user);
+            }
+        }
+
+        // 3. Generate tokens
+        String accessToken = jwtUtils.generateToken(user.getId(), user.getUsername(), user.getRole().getName(), user.getEmail());
+        String refreshToken = ensureRefreshToken(user);
+
+        return new AuthDtos.AuthResponse(accessToken, refreshToken);
+    }
+
+    /**
+     * Generate unique username từ base username
+     */
+    private String generateUniqueUsername(String baseUsername) {
+        String username = baseUsername;
+        int counter = 1;
+
+        while (userRepository.existsByUsername(username)) {
+            username = baseUsername + counter;
+            counter++;
+        }
+
+        return username;
+    }
+
     private String ensureRefreshToken(UserEntity user) {
         return refreshTokenRepository.findByUser(user)
                 .map(rt -> {
@@ -143,4 +233,3 @@ public class AuthService implements IAuthService {
         return rt.getToken();
     }
 }
-
