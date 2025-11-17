@@ -5,6 +5,8 @@ import org.example.storyreading.storyservice.service.IStoryService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 @RestController
@@ -48,5 +50,26 @@ public class StoryController {
             @PathVariable Long id) {
         storyService.deleteStory(userId, id);
         return ResponseEntity.noContent().build();
+    }
+
+    // Search stories by title (partial, case-insensitive)
+    @GetMapping("/search")
+    public ResponseEntity<List<StoryDtos.StoryResponse>> searchByTitle(@RequestParam("title") String title) {
+        return ResponseEntity.ok(storyService.searchByTitle(title));
+    }
+
+    // Get stories by genre with pagination (page starts at 0)
+    @GetMapping("/genre/{genre}")
+    public ResponseEntity<List<StoryDtos.StoryResponse>> getByGenre(
+            @PathVariable String genre,
+            @RequestParam(value = "page", defaultValue = "0") int page,
+            @RequestParam(value = "size", defaultValue = "20") int size) {
+        // Path variables may contain percent-encoding or plus signs; decode to produce the intended genre string.
+        String decoded = URLDecoder.decode(genre, StandardCharsets.UTF_8);
+        // In some clients '+' is used to represent space in query encoding; ensure '+' becomes space.
+        if (decoded.indexOf('+') >= 0) {
+            decoded = decoded.replace('+', ' ');
+        }
+        return ResponseEntity.ok(storyService.getStoriesByGenre(decoded, page, size));
     }
 }

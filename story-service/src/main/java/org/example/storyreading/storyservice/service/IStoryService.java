@@ -10,4 +10,10 @@ public interface IStoryService {
     List<StoryDtos.StoryResponse> listStories();
     StoryDtos.StoryResponse updateStory(Long authorId, Long storyId, StoryDtos.UpdateStoryRequest request);
     void deleteStory(Long authorId, Long storyId);
+
+    // Search stories by title (partial, case-insensitive)
+    List<StoryDtos.StoryResponse> searchByTitle(String title);
+
+    // Get stories by genre with pagination
+    List<StoryDtos.StoryResponse> getStoriesByGenre(String genre, int page, int size);
 }

@@ -8,6 +8,7 @@ import org.example.storyreading.storyservice.repository.StoryRepository;
 import org.example.storyreading.storyservice.service.IStoryService;
 import org.example.storyreading.storyservice.util.SlugUtil;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -51,8 +52,16 @@ public class StoryService implements IStoryService {
     }
 
     @Override
+    @Transactional
     public StoryDtos.StoryResponse getStory(Long id) {
+        // Ensure story exists (if DB doesn't have view_count column this will still fail until migration is applied)
         StoryEntity s = storyRepository.findById(id).orElseThrow(() -> new IllegalArgumentException("Story not found"));
+
+        // Atomically increment view count at DB level to avoid race conditions
+        storyRepository.incrementViewCountById(id);
+
+        // Reload entity to get updated viewCount
+        s = storyRepository.findById(id).orElseThrow(() -> new IllegalArgumentException("Story not found"));
         return toDto(s);
     }
 
@@ -152,6 +161,21 @@ public class StoryService implements IStoryService {
         }
     }
 
+    @Override
+    public List<StoryDtos.StoryResponse> searchByTitle(String title) {
+        if (title == null || title.isBlank()) return Collections.emptyList();
+        List<StoryEntity> list = storyRepository.findByTitleContainingIgnoreCase(title);
+        return list.stream().map(this::toDto).collect(Collectors.toList());
+    }
+
+    @Override
+    public List<StoryDtos.StoryResponse> getStoriesByGenre(String genre, int page, int size) {
+        if (genre == null || genre.isBlank()) return Collections.emptyList();
+        var pageable = PageRequest.of(Math.max(0, page), Math.max(1, size));
+        return storyRepository.findByGenresContainingIgnoreCase(genre, pageable)
+                .stream().map(this::toDto).collect(Collectors.toList());
+    }
+
     private StoryDtos.StoryResponse toDto(StoryEntity s) {
         StoryDtos.StoryResponse dto = new StoryDtos.StoryResponse();
         dto.id = s.getId();
@@ -162,6 +186,7 @@ public class StoryService implements IStoryService {
         dto.paid = s.isPaid();
         dto.price = s.getPrice();
         dto.author = s.getAuthor();
+        dto.viewCount = s.getViewCount();
         return dto;
     }
 

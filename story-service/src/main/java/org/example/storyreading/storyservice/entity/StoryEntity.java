@@ -31,10 +31,14 @@ public class StoryEntity {
     @Column(name = "price", nullable = false)
     private long price;
 
+    @Column(name = "view_count", nullable = false)
+    private long viewCount = 0L;
+
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt = LocalDateTime.now();
     @Column(name = "updated_at")
     private LocalDateTime updatedAt = LocalDateTime.now();
+
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
@@ -52,10 +56,10 @@ public class StoryEntity {
     public void setPaid(boolean paid) { this.paid = paid; }
     public long getPrice() { return price; }
     public void setPrice(long price) { this.price = price; }
+    public long getViewCount() { return viewCount; }
+    public void setViewCount(long viewCount) { this.viewCount = viewCount; }
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
     public LocalDateTime getUpdatedAt() { return updatedAt; }
     public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
 }
-
-
