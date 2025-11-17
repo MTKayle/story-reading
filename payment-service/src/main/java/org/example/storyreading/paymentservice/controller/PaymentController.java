@@ -8,6 +8,7 @@ import org.example.storyreading.paymentservice.dto.VNPayResponse;
 import org.example.storyreading.paymentservice.entity.Payment;
 import org.example.storyreading.paymentservice.service.PaymentService;
 import org.example.storyreading.paymentservice.service.StoryPurchaseService;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.view.RedirectView;
@@ -30,11 +31,19 @@ public class PaymentController {
 
     private final PaymentService paymentService;
     private final StoryPurchaseService storyPurchaseService;
+    private final String frontendBaseUrl;
 
     // Explicit constructor to initialize final field (avoids Lombok dependency)
-    public PaymentController(PaymentService paymentService, StoryPurchaseService storyPurchaseService) {
+    public PaymentController(
+            PaymentService paymentService,
+            StoryPurchaseService storyPurchaseService,
+            @Value("${frontend.base-url:http://localhost:3000}") String frontendBaseUrl
+    ) {
         this.paymentService = paymentService;
         this.storyPurchaseService = storyPurchaseService;
+        this.frontendBaseUrl = frontendBaseUrl.endsWith("/")
+                ? frontendBaseUrl.substring(0, frontendBaseUrl.length() - 1)
+                : frontendBaseUrl;
     }
 
     @PostMapping(value = "/deposit",
@@ -88,10 +97,12 @@ public class PaymentController {
         String txnRef = vnpParams.get("vnp_TxnRef");
 
         if ("00".equals(responseCode)) {
-            return new RedirectView("http://localhost:3000/payment/success?txnRef=" + txnRef);
-        } else {
-            return new RedirectView("http://localhost:3000/payment/failed?txnRef=" + txnRef);
+            return new RedirectView(frontendBaseUrl + "/payment/success?txnRef=" + txnRef);
         }
+
+        String failureUrl = frontendBaseUrl + "/?paymentStatus=cancelled"
+                + (txnRef != null ? "&txnRef=" + txnRef : "");
+        return new RedirectView(failureUrl);
     }
 
     @GetMapping("/transaction/{transactionId}")
