@@ -1,6 +1,7 @@
 package org.example.storyreading.userservice.controller;
 
 import org.example.storyreading.userservice.dto.AuthDtos;
+import org.example.storyreading.userservice.dto.GoogleLoginRequest;
 import org.example.storyreading.userservice.service.IAuthService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -29,6 +30,13 @@ public class AuthController {
     public ResponseEntity<AuthDtos.AuthResponse> refresh(@RequestBody AuthDtos.RefreshTokenRequest request) {
         return ResponseEntity.ok(authService.refresh(request));
     }
+
+    @PostMapping("/google")
+    public ResponseEntity<AuthDtos.AuthResponse> loginWithGoogle(@RequestBody GoogleLoginRequest request) {
+        try {
+            return ResponseEntity.ok(authService.loginWithGoogle(request));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().build();
+        }
+    }
 }
-
-

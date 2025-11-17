@@ -24,6 +24,9 @@ public class UserEntity {
     @Column(nullable = false)
     private String password;
 
+    @Column(name = "google_id", unique = true)
+    private String googleId;
+
     @Column(name = "avatar_url")
     private String avatarUrl;
 
@@ -102,6 +105,14 @@ public class UserEntity {
 
     public void setPassword(String password) {
         this.password = password;
+    }
+
+    public String getGoogleId() {
+        return googleId;
+    }
+
+    public void setGoogleId(String googleId) {
+        this.googleId = googleId;
     }
 
     public String getAvatarUrl() {
