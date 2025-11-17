@@ -60,6 +60,13 @@ public class FollowService {
         return followRepository.countByStoryId(storyId);
     }
 
+    public List<Long> getStoryFollowerIds(Long storyId) {
+        return followRepository.findByStoryId(storyId)
+                .stream()
+                .map(Follow::getUserId)
+                .collect(Collectors.toList());
+    }
+
     private FollowDto.FollowResponse mapToResponse(Follow follow) {
         FollowDto.FollowResponse response = new FollowDto.FollowResponse();
         response.setId(follow.getId());
@@ -69,4 +76,3 @@ public class FollowService {
         return response;
     }
 }
-

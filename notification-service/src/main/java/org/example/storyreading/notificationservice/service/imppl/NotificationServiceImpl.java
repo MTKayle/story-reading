@@ -16,7 +16,6 @@ import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestTemplate;
 
 import java.util.List;
 
@@ -52,14 +51,16 @@ public class NotificationServiceImpl implements NotificationService {
     public void createCommentNotification(CommentEvent event) {
         // 1. Notification cho tác giả truyện
         if (!event.getUserId().equals(event.getAuthorId())) {
-            Notification n1 = Notification.builder()
-                    .recipientId(event.getAuthorId())
-                    .senderId(event.getUserId())
-                    .content("Người dùng " + event.getUserId() + " đã bình luận vào truyện của bạn.\n" + event.getContent())
-                    .link("/story/" + event.getStoryId() + "/comments#" + event.getCommentId())
-                    .typeId(event.getCommentId())
-                    .build();
-            System.out.println(n1.toString());
+            Notification n1 = new Notification();
+            n1.setRecipientId(event.getAuthorId());
+            n1.setSenderId(event.getUserId());
+            n1.setContent("Người dùng " + event.getUserId() + " đã bình luận vào truyện của bạn.\n" + event.getContent());
+            n1.setLink("/story/" + event.getStoryId() + "/comments#" + event.getCommentId());
+            n1.setTypeId(event.getCommentId());
+            n1.setIsRead(false);
+            n1.setIsDeleted(false);
+
+            System.out.println(n1);
             repository.save(n1);
             messagingTemplate.convertAndSend("/topic/notifications/" + n1.getRecipientId(), n1);
 
@@ -70,14 +71,16 @@ public class NotificationServiceImpl implements NotificationService {
 
         // 2. Notification cho người bị reply
         if (event.getParentId() != null && !event.getParentId().equals(event.getUserId())) {
-            Notification n2 = Notification.builder()
-                    .recipientId(event.getParentId())
-                    .senderId(event.getUserId())
-                    .content("Người dùng " + event.getUserId() + " đã trả lời bình luận của bạn.\n" + event.getContent())
-                    .link("/story/" + event.getStoryId() + "/comments#" + event.getCommentId())
-                    .typeId(event.getCommentId())
-                    .build();
-            System.out.println(n2.toString());
+            Notification n2 = new Notification();
+            n2.setRecipientId(event.getParentId());
+            n2.setSenderId(event.getUserId());
+            n2.setContent("Người dùng " + event.getUserId() + " đã trả lời bình luận của bạn.\n" + event.getContent());
+            n2.setLink("/story/" + event.getStoryId() + "/comments#" + event.getCommentId());
+            n2.setTypeId(event.getCommentId());
+            n2.setIsRead(false);
+            n2.setIsDeleted(false);
+
+            System.out.println(n2);
             repository.save(n2);
             messagingTemplate.convertAndSend("/topic/notifications/" + n2.getRecipientId(), n2);
 
@@ -91,16 +94,16 @@ public class NotificationServiceImpl implements NotificationService {
     public void createReactionNotification(ReactionEvent event) {
         // Không gửi notification nếu người thực hiện là chủ nhận
         if (!event.getUserId().equals(event.getAuthorId())) {
-            Notification n = Notification.builder()
-                    .recipientId(event.getAuthorId())
-                    .senderId(event.getUserId())
-                    .content("Người dùng " + event.getUserId() + " đã " + event.getType() +
-                            " bình luận của bạn")
-                    .link(event.getCommentId() != null
-                            ? "/story/" + event.getStoryId() + "/comments#" + event.getCommentId()
-                            : "/story/" + event.getStoryId())
-                    .typeId(event.getReactionId())
-                    .build();
+            Notification n = new Notification();
+            n.setRecipientId(event.getAuthorId());
+            n.setSenderId(event.getUserId());
+            n.setContent("Người dùng " + event.getUserId() + " đã " + event.getType() + " bình luận của bạn");
+            n.setLink(event.getCommentId() != null
+                    ? "/story/" + event.getStoryId() + "/comments#" + event.getCommentId()
+                    : "/story/" + event.getStoryId());
+            n.setTypeId(event.getReactionId());
+            n.setIsRead(false);
+            n.setIsDeleted(false);
 
             repository.save(n);
             messagingTemplate.convertAndSend("/topic/notifications/" + n.getRecipientId(), n);
@@ -117,13 +120,14 @@ public class NotificationServiceImpl implements NotificationService {
     public void createRatingNotification(RatingEvent event) {
         // Không gửi notification nếu người thực hiện là tác giả
         if (!event.getUserId().equals(event.getAuthorId())) {
-            Notification n = Notification.builder()
-                    .recipientId(event.getAuthorId())
-                    .senderId(event.getUserId())
-                    .content("Người dùng " + event.getUserId() + " đã đánh giá " + event.getStars() + " sao cho truyện của bạn")
-                    .link("/story/" + event.getStoryId())
-                    .typeId(event.getRatingId())
-                    .build();
+            Notification n = new Notification();
+            n.setRecipientId(event.getAuthorId());
+            n.setSenderId(event.getUserId());
+            n.setContent("Người dùng " + event.getUserId() + " đã đánh giá " + event.getStars() + " sao cho truyện của bạn");
+            n.setLink("/story/" + event.getStoryId());
+            n.setTypeId(event.getRatingId());
+            n.setIsRead(false);
+            n.setIsDeleted(false);
 
             repository.save(n);
             messagingTemplate.convertAndSend("/topic/notifications/" + n.getRecipientId(), n);
@@ -172,13 +176,14 @@ public class NotificationServiceImpl implements NotificationService {
     // ✅ Thông báo nạp tiền thành công (DepositEvent)
     @Override
     public void createDepositNotification(DepositEvent event) {
-        Notification n = Notification.builder()
-                .recipientId(event.getUserId())
-                .senderId(null) // Hệ thống gửi
-                .content("Bạn đã nạp thành công " + event.getAmount() + " vào tài khoản")
-                .link("/user/wallet")
-                .typeId(event.getTransactionId())
-                .build();
+        Notification n = new Notification();
+        n.setRecipientId(event.getUserId());
+        n.setSenderId(null);
+        n.setContent("Bạn đã nạp thành công " + event.getAmount() + " vào tài khoản");
+        n.setLink("/user/wallet");
+        n.setTypeId(event.getTransactionId());
+        n.setIsRead(false);
+        n.setIsDeleted(false);
 
         repository.save(n);
         messagingTemplate.convertAndSend("/topic/notifications/" + n.getRecipientId(), n);
@@ -193,13 +198,14 @@ public class NotificationServiceImpl implements NotificationService {
     // ✅ Thông báo mua truyện thành công (PaymentEvent)
     @Override
     public void createPurchaseStoryNotification(PaymentEvent event) {
-        Notification n = Notification.builder()
-                .recipientId(event.getUserId())
-                .senderId(null) // Hệ thống gửi
-                .content("Bạn đã mua thành công truyện " + event.getStoryTitle())
-                .link("/story/" + event.getStoryId())
-                .typeId(event.getTransactionId())
-                .build();
+        Notification n = new Notification();
+        n.setRecipientId(event.getUserId());
+        n.setSenderId(null);
+        n.setContent("Bạn đã mua thành công truyện " + event.getStoryTitle());
+        n.setLink("/story/" + event.getStoryId());
+        n.setTypeId(event.getTransactionId());
+        n.setIsRead(false);
+        n.setIsDeleted(false);
 
         repository.save(n);
         messagingTemplate.convertAndSend("/topic/notifications/" + n.getRecipientId(), n);
@@ -217,13 +223,14 @@ public class NotificationServiceImpl implements NotificationService {
         // Gửi thông báo cho tất cả người theo dõi truyện
         if (event.getFollowerIds() != null && !event.getFollowerIds().isEmpty()) {
             for (Long followerId : event.getFollowerIds()) {
-                Notification n = Notification.builder()
-                        .recipientId(followerId)
-                        .senderId(event.getAuthorId())
-                        .content("Truyện " + event.getStoryTitle() + " đã ra chương mới: " + event.getChapterTitle())
-                        .link("/story/" + event.getStoryId() + "/chapter/" + event.getChapterId())
-                        .typeId(event.getChapterId())
-                        .build();
+                Notification n = new Notification();
+                n.setRecipientId(followerId);
+                n.setSenderId(event.getAuthorId());
+                n.setContent("Truyện " + event.getStoryTitle() + " đã ra chương mới: " + event.getChapterTitle());
+                n.setLink("/story/" + event.getStoryId() + "/chapter/" + event.getChapterId());
+                n.setTypeId(event.getChapterId());
+                n.setIsRead(false);
+                n.setIsDeleted(false);
 
                 repository.save(n);
                 messagingTemplate.convertAndSend("/topic/notifications/" + n.getRecipientId(), n);

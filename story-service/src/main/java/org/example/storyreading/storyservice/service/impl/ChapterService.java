@@ -1,5 +1,8 @@
 package org.example.storyreading.storyservice.service.impl;
 
+import org.example.storyreading.storyservice.client.FavouriteServiceClient;
+import org.example.storyreading.storyservice.config.RabbitMQConfig;
+import org.example.storyreading.storyservice.dto.NewChapterEvent;
 import org.example.storyreading.storyservice.dto.StoryDtos;
 import org.example.storyreading.storyservice.entity.ChapterEntity;
 import org.example.storyreading.storyservice.entity.StoryEntity;
@@ -8,6 +11,7 @@ import org.example.storyreading.storyservice.repository.PurchaseRepository;
 import org.example.storyreading.storyservice.repository.StoryRepository;
 import org.example.storyreading.storyservice.service.IChapterService;
 import org.example.storyreading.storyservice.util.SlugUtil;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -27,14 +31,20 @@ public class ChapterService implements IChapterService {
     private final StoryRepository storyRepository;
     private final PurchaseRepository purchaseRepository;
     private final Path publicImagesDir;
+    private final RabbitTemplate rabbitTemplate;
+    private final FavouriteServiceClient favouriteServiceClient;
 
     public ChapterService(ChapterRepository chapterRepository,
                           StoryRepository storyRepository,
                           PurchaseRepository purchaseRepository,
+                          RabbitTemplate rabbitTemplate,
+                          FavouriteServiceClient favouriteServiceClient,
                           @Value("${storage.public-dir:public}") String publicDir) {
         this.chapterRepository = chapterRepository;
         this.storyRepository = storyRepository;
         this.purchaseRepository = purchaseRepository;
+        this.rabbitTemplate = rabbitTemplate;
+        this.favouriteServiceClient = favouriteServiceClient;
         this.publicImagesDir = Paths.get(publicDir).resolve("images");
     }
 
@@ -54,6 +64,32 @@ public class ChapterService implements IChapterService {
         c.setTitle(request.title);
         c.setImageIds(request.imageIds == null ? null : String.join(",", request.imageIds));
         c = chapterRepository.save(c);
+
+        // Gửi thông báo qua RabbitMQ cho các user đang follow truyện này
+        try {
+            List<Long> followerIds = favouriteServiceClient.getStoryFollowers(storyId);
+            if (followerIds != null && !followerIds.isEmpty()) {
+                Long authorId = story.getAuthor() != null ? Long.parseLong(story.getAuthor()) : null;
+                NewChapterEvent event = new NewChapterEvent(
+                        story.getId(),
+                        story.getTitle(),
+                        c.getId(),
+                        c.getTitle(),
+                        authorId,
+                        followerIds
+                );
+                rabbitTemplate.convertAndSend(
+                        RabbitMQConfig.NEW_CHAPTER_EXCHANGE,
+                        RabbitMQConfig.NEW_CHAPTER_ROUTING_KEY,
+                        event
+                );
+                System.out.println("📚 Sent new chapter notification for story: " + story.getTitle() + " to " + followerIds.size() + " followers");
+            }
+        } catch (Exception e) {
+            System.err.println("Failed to send new chapter notification: " + e.getMessage());
+            // Không throw exception để không ảnh hưởng đến việc tạo chapter
+        }
+
         return toDto(c);
     }
 

@@ -80,10 +80,18 @@ public class FollowController {
     /**
      * Lấy số lượng người theo dõi của một truyện (public API)
      */
-    @GetMapping("/story/{storyId}/count")
+    @GetMapping("/story/public/{storyId}/count")
     public ResponseEntity<Long> getFollowerCount(@PathVariable Long storyId) {
         long count = followService.getStoryFollowerCount(storyId);
         return ResponseEntity.ok(count);
     }
-}
 
+    /**
+     * Lấy danh sách userId của người theo dõi truyện (internal API)
+     */
+    @GetMapping("/story/{storyId}/followers")
+    public ResponseEntity<List<Long>> getStoryFollowers(@PathVariable Long storyId) {
+        List<Long> followerIds = followService.getStoryFollowerIds(storyId);
+        return ResponseEntity.ok(followerIds);
+    }
+}

@@ -2,21 +2,19 @@ package org.example.storyreading.paymentservice.dto;
 
 import java.io.Serializable;
 
-public class PaymentEvent implements Serializable {
+public class DepositEvent implements Serializable {
 
     private static final long serialVersionUID = 1L;
 
     private Long userId;
-    private Long storyId;
-    private String storyTitle;
+    private Long amount;
     private Long transactionId;
 
-    public PaymentEvent() {}
+    public DepositEvent() {}
 
-    public PaymentEvent(Long userId, Long storyId, String storyTitle, Long transactionId) {
+    public DepositEvent(Long userId, Long amount, Long transactionId) {
         this.userId = userId;
-        this.storyId = storyId;
-        this.storyTitle = storyTitle;
+        this.amount = amount;
         this.transactionId = transactionId;
     }
 
@@ -28,20 +26,12 @@ public class PaymentEvent implements Serializable {
         this.userId = userId;
     }
 
-    public Long getStoryId() {
-        return storyId;
+    public Long getAmount() {
+        return amount;
     }
 
-    public void setStoryId(Long storyId) {
-        this.storyId = storyId;
-    }
-
-    public String getStoryTitle() {
-        return storyTitle;
-    }
-
-    public void setStoryTitle(String storyTitle) {
-        this.storyTitle = storyTitle;
+    public void setAmount(Long amount) {
+        this.amount = amount;
     }
 
     public Long getTransactionId() {

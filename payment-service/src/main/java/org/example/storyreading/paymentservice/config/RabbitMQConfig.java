@@ -14,28 +14,25 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class RabbitMQConfig {
 
-    public static final String PAYMENT_EXCHANGE = "payment.exchange";
-    public static final String PAYMENT_QUEUE = "payment.queue";
-    public static final String PAYMENT_ROUTING_KEY = "payment.success";
-
-    // Story purchase configuration
+    // Story purchase configuration (gửi tới story-service)
     public static final String STORY_PURCHASE_EXCHANGE = "story.purchase.exchange";
     public static final String STORY_PURCHASE_QUEUE = "story.purchase.queue";
     public static final String STORY_PURCHASE_ROUTING_KEY = "story.purchase.success";
 
-    @Bean
-    public Queue paymentQueue() {
-        return new Queue(PAYMENT_QUEUE, true);
-    }
+    // Deposit configuration (gửi tới notification-service)
+    public static final String DEPOSIT_EXCHANGE = "deposit-exchange";
+    public static final String DEPOSIT_QUEUE = "deposit-queue";
+    public static final String DEPOSIT_ROUTING_KEY = "deposit.created";
 
+    // Payment configuration (gửi tới notification-service)
+    public static final String PAYMENT_EXCHANGE = "payment-exchange";
+    public static final String PAYMENT_QUEUE = "payment-queue";
+    public static final String PAYMENT_ROUTING_KEY = "payment.created";
+
+    // Story purchase beans
     @Bean
     public Queue storyPurchaseQueue() {
         return new Queue(STORY_PURCHASE_QUEUE, true);
-    }
-
-    @Bean
-    public TopicExchange paymentExchange() {
-        return new TopicExchange(PAYMENT_EXCHANGE);
     }
 
     @Bean
@@ -44,13 +41,40 @@ public class RabbitMQConfig {
     }
 
     @Bean
-    public Binding paymentBinding(Queue paymentQueue, TopicExchange paymentExchange) {
-        return BindingBuilder.bind(paymentQueue).to(paymentExchange).with(PAYMENT_ROUTING_KEY);
+    public Binding storyPurchaseBinding() {
+        return BindingBuilder.bind(storyPurchaseQueue()).to(storyPurchaseExchange()).with(STORY_PURCHASE_ROUTING_KEY);
+    }
+
+    // Deposit beans
+    @Bean
+    public Queue depositQueue() {
+        return new Queue(DEPOSIT_QUEUE, true);
     }
 
     @Bean
-    public Binding storyPurchaseBinding() {
-        return BindingBuilder.bind(storyPurchaseQueue()).to(storyPurchaseExchange()).with(STORY_PURCHASE_ROUTING_KEY);
+    public TopicExchange depositExchange() {
+        return new TopicExchange(DEPOSIT_EXCHANGE);
+    }
+
+    @Bean
+    public Binding depositBinding() {
+        return BindingBuilder.bind(depositQueue()).to(depositExchange()).with(DEPOSIT_ROUTING_KEY);
+    }
+
+    // Payment beans
+    @Bean
+    public Queue paymentQueue() {
+        return new Queue(PAYMENT_QUEUE, true);
+    }
+
+    @Bean
+    public TopicExchange paymentExchange() {
+        return new TopicExchange(PAYMENT_EXCHANGE);
+    }
+
+    @Bean
+    public Binding paymentBinding() {
+        return BindingBuilder.bind(paymentQueue()).to(paymentExchange()).with(PAYMENT_ROUTING_KEY);
     }
 
     @Bean

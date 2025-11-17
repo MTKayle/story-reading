@@ -33,7 +33,8 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
     // Các endpoint public cho phép truy cập GET mà không cần xác thực
     private static  final List<String> PUBLIC_GET_ENDPOINTS = List.of(
             "/api/story",// Cho phép truy cập công khai đến các truyện công khai
-            "/api/comments"
+            "/api/comments",
+            "/api/follows/story/public"
     );
 
     //ham kiem tra public get endpoint
