@@ -1,0 +1,23 @@
+version: '3.8'
+
+services:
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: rabbitmq
+    ports:
+      - "5672:5672"       # cổng AMQP để microservice kết nối
+      - "15672:15672"    # cổng giao diện web
+    environment:
+      RABBITMQ_DEFAULT_USER: myadmin
+      RABBITMQ_DEFAULT_PASS: mypassword
+    networks:
+      - story-network
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+networks:
+  story-network:
+    driver: bridge

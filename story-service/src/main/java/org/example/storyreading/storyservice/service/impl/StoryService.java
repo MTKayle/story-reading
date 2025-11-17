@@ -176,6 +176,13 @@ public class StoryService implements IStoryService {
                 .stream().map(this::toDto).collect(Collectors.toList());
     }
 
+    @Override
+    public String getStoryTitle(Long id) {
+        StoryEntity story = storyRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Story not found"));
+        return story.getTitle();
+    }
+
     private StoryDtos.StoryResponse toDto(StoryEntity s) {
         StoryDtos.StoryResponse dto = new StoryDtos.StoryResponse();
         dto.id = s.getId();

@@ -1,25 +1,24 @@
 package org.example.storyreading.paymentservice.dto;
 
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-
 import java.io.Serializable;
-import java.math.BigDecimal;
-import java.time.LocalDateTime;
 
-@Data
-@NoArgsConstructor
-@AllArgsConstructor
 public class PaymentEvent implements Serializable {
+
     private static final long serialVersionUID = 1L;
 
     private Long userId;
-    private String transactionId;
-    private BigDecimal amount;
-    private String status; // SUCCESS, FAILED
-    private String paymentType; // DEPOSIT, PURCHASE
-    private LocalDateTime timestamp;
+    private Long storyId;
+    private String storyTitle;
+    private Long transactionId;
+
+    public PaymentEvent() {}
+
+    public PaymentEvent(Long userId, Long storyId, String storyTitle, Long transactionId) {
+        this.userId = userId;
+        this.storyId = storyId;
+        this.storyTitle = storyTitle;
+        this.transactionId = transactionId;
+    }
 
     public Long getUserId() {
         return userId;
@@ -29,44 +28,28 @@ public class PaymentEvent implements Serializable {
         this.userId = userId;
     }
 
-    public String getTransactionId() {
+    public Long getStoryId() {
+        return storyId;
+    }
+
+    public void setStoryId(Long storyId) {
+        this.storyId = storyId;
+    }
+
+    public String getStoryTitle() {
+        return storyTitle;
+    }
+
+    public void setStoryTitle(String storyTitle) {
+        this.storyTitle = storyTitle;
+    }
+
+    public Long getTransactionId() {
         return transactionId;
     }
 
-    public void setTransactionId(String transactionId) {
+    public void setTransactionId(Long transactionId) {
         this.transactionId = transactionId;
-    }
-
-    public BigDecimal getAmount() {
-        return amount;
-    }
-
-    public void setAmount(BigDecimal amount) {
-        this.amount = amount;
-    }
-
-    public String getStatus() {
-        return status;
-    }
-
-    public void setStatus(String status) {
-        this.status = status;
-    }
-
-    public String getPaymentType() {
-        return paymentType;
-    }
-
-    public void setPaymentType(String paymentType) {
-        this.paymentType = paymentType;
-    }
-
-    public LocalDateTime getTimestamp() {
-        return timestamp;
-    }
-
-    public void setTimestamp(LocalDateTime timestamp) {
-        this.timestamp = timestamp;
     }
 }
 

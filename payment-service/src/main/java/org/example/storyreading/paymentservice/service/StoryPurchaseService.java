@@ -1,7 +1,9 @@
 package org.example.storyreading.paymentservice.service;
 
+import org.example.storyreading.paymentservice.client.StoryServiceClient;
 import org.example.storyreading.paymentservice.client.UserServiceClient;
 import org.example.storyreading.paymentservice.config.RabbitMQConfig;
+import org.example.storyreading.paymentservice.dto.PaymentEvent;
 import org.example.storyreading.paymentservice.dto.PurchaseStoryRequest;
 import org.example.storyreading.paymentservice.dto.StoryPurchaseEvent;
 import org.example.storyreading.paymentservice.entity.Payment;
@@ -21,14 +23,16 @@ public class StoryPurchaseService {
 
     private final PaymentRepository paymentRepository;
     private final UserServiceClient userServiceClient;
+    private final StoryServiceClient storyServiceClient;
     private final RabbitTemplate rabbitTemplate;
 
-    // Constructor thay thế cho @RequiredArgsConstructor
     public StoryPurchaseService(PaymentRepository paymentRepository,
                                 UserServiceClient userServiceClient,
+                                StoryServiceClient storyServiceClient,
                                 RabbitTemplate rabbitTemplate) {
         this.paymentRepository = paymentRepository;
         this.userServiceClient = userServiceClient;
+        this.storyServiceClient = storyServiceClient;
         this.rabbitTemplate = rabbitTemplate;
     }
 
@@ -66,7 +70,7 @@ public class StoryPurchaseService {
         log.info("Created pending payment with ID: {}", payment.getId());
 
         try {
-            // Call user-service to check balance and deduct amount with SELECT FOR UPDATE
+            // Call user-service to check balance and deduct amount
             boolean deductSuccess = userServiceClient.checkAndDeductBalance(
                 userId,
                 request.getPrice(),
@@ -88,7 +92,7 @@ public class StoryPurchaseService {
             payment = paymentRepository.save(payment);
 
             // Publish event to RabbitMQ for story-service to grant access
-            StoryPurchaseEvent event = new StoryPurchaseEvent(
+            StoryPurchaseEvent storyEvent = new StoryPurchaseEvent(
                 userId,
                 request.getStoryId(),
                 request.getPrice(),
@@ -98,11 +102,14 @@ public class StoryPurchaseService {
             rabbitTemplate.convertAndSend(
                 RabbitMQConfig.STORY_PURCHASE_EXCHANGE,
                 RabbitMQConfig.STORY_PURCHASE_ROUTING_KEY,
-                event
+                storyEvent
             );
 
             log.info("Published story purchase event to RabbitMQ for userId: {}, storyId: {}",
                 userId, request.getStoryId());
+
+            // Gửi thông báo tới notification-service
+            sendPurchaseNotification(payment, request.getStoryId());
 
             return payment;
 
@@ -113,5 +120,51 @@ public class StoryPurchaseService {
             paymentRepository.save(payment);
             throw new RuntimeException("Story purchase failed: " + e.getMessage());
         }
+    }
+
+    private void sendPurchaseNotification(Payment payment, Long storyId) {
+        try {
+            // Lấy thông tin truyện từ story-service
+            String storyTitle = storyServiceClient.getStoryTitle(storyId);
+
+            PaymentEvent event = new PaymentEvent(
+                payment.getUserId(),
+                storyId,
+                storyTitle,
+                payment.getId()
+            );
+
+            rabbitTemplate.convertAndSend(
+                RabbitMQConfig.PAYMENT_EXCHANGE,
+                RabbitMQConfig.PAYMENT_ROUTING_KEY,
+                event
+            );
+
+            log.info("📖 Purchase notification sent to RabbitMQ for userId: {}, storyTitle: {}",
+                payment.getUserId(), storyTitle);
+        } catch (Exception e) {
+            log.error("Failed to send purchase notification to RabbitMQ", e);
+            // Không throw exception để không ảnh hưởng đến giao dịch chính
+        }
+    }
+
+    /**
+     * Kiểm tra xem user đã mua truyện này chưa
+     * @param userId ID của user
+     * @param storyId ID của truyện
+     * @return true nếu đã mua, false nếu chưa mua
+     */
+    public boolean checkPurchaseStatus(Long userId, Long storyId) {
+        log.info("Checking purchase status for userId: {}, storyId: {}", userId, storyId);
+
+        boolean hasPurchased = paymentRepository.existsByUserIdAndStoryIdAndPaymentTypeAndStatus(
+            userId,
+            storyId,
+            Payment.PaymentType.PURCHASE,
+            Payment.PaymentStatus.SUCCESS
+        );
+
+        log.info("Purchase status for userId: {}, storyId: {} = {}", userId, storyId, hasPurchased);
+        return hasPurchased;
     }
 }

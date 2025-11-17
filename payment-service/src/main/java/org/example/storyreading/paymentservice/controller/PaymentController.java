@@ -101,10 +101,26 @@ public class PaymentController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
-    @GetMapping("/user/history")
-    public ResponseEntity<List<Payment>> getUserPaymentHistory(
-            @RequestHeader("X-User-Id") Long userId) {
-        List<Payment> payments = paymentService.getUserPayments(userId);
-        return ResponseEntity.ok(payments);
+    /**
+     * Kiểm tra xem user đã mua truyện này chưa
+     * GET /api/payment/check-purchase/{storyId}
+     * Header: X-User-Id
+     * Response: { "purchased": true/false }
+     */
+    @GetMapping("/check-purchase/{storyId}")
+    public ResponseEntity<Map<String, Boolean>> checkPurchaseStatus(
+            @RequestHeader("X-User-Id") Long userId,
+            @PathVariable Long storyId) {
+
+        log.info("Checking purchase status for userId: {}, storyId: {}", userId, storyId);
+
+        boolean hasPurchased = storyPurchaseService.checkPurchaseStatus(userId, storyId);
+
+        return ResponseEntity.ok(Map.of("purchased", hasPurchased));
+    }
+
+    @GetMapping("/user/payments")
+    public ResponseEntity<List<Payment>> getUserPayments(@RequestHeader("X-User-Id") Long userId) {
+        return ResponseEntity.ok(paymentService.getUserPayments(userId));
     }
 }

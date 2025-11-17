@@ -2,6 +2,7 @@ package org.example.storyreading.paymentservice.service;
 
 import org.example.storyreading.paymentservice.config.RabbitMQConfig;
 import org.example.storyreading.paymentservice.config.VNPayConfig;
+import org.example.storyreading.paymentservice.dto.DepositEvent;
 import org.example.storyreading.paymentservice.dto.DepositRequest;
 import org.example.storyreading.paymentservice.dto.PaymentEvent;
 import org.example.storyreading.paymentservice.dto.VNPayResponse;
@@ -150,8 +151,10 @@ public class PaymentService {
             paymentRepository.save(payment);
             log.info("Payment success for txnRef: {}", vnpTxnRef);
 
-            // Send event to RabbitMQ
-            sendPaymentSuccessEvent(payment);
+            // Send event to RabbitMQ for notification
+            if (payment.getPaymentType() == Payment.PaymentType.DEPOSIT) {
+                sendDepositSuccessEvent(payment);
+            }
         } else {
             // Payment failed
             payment.setStatus(Payment.PaymentStatus.FAILED);
@@ -160,25 +163,24 @@ public class PaymentService {
         }
     }
 
-    private void sendPaymentSuccessEvent(Payment payment) {
+    private void sendDepositSuccessEvent(Payment payment) {
         try {
-            PaymentEvent event = new PaymentEvent();
-            event.setUserId(payment.getUserId());
-            event.setTransactionId(payment.getTransactionId());
-            event.setAmount(payment.getAmount());
-            event.setStatus("SUCCESS");
-            event.setPaymentType(payment.getPaymentType().name());
-            event.setTimestamp(LocalDateTime.now());
+            DepositEvent event = new DepositEvent(
+                payment.getUserId(),
+                payment.getAmount().longValue(),
+                payment.getId()
+            );
 
             rabbitTemplate.convertAndSend(
-                RabbitMQConfig.PAYMENT_EXCHANGE,
-                RabbitMQConfig.PAYMENT_ROUTING_KEY,
+                RabbitMQConfig.DEPOSIT_EXCHANGE,
+                RabbitMQConfig.DEPOSIT_ROUTING_KEY,
                 event
             );
 
-            log.info("Payment success event sent to RabbitMQ for transaction: {}", payment.getTransactionId());
+            log.info("💰 Deposit success event sent to RabbitMQ for userId: {}, amount: {}",
+                payment.getUserId(), payment.getAmount());
         } catch (Exception e) {
-            log.error("Failed to send payment event to RabbitMQ", e);
+            log.error("Failed to send deposit event to RabbitMQ", e);
         }
     }
 

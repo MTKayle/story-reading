@@ -16,4 +16,7 @@ public interface IStoryService {
 
     // Get stories by genre with pagination
     List<StoryDtos.StoryResponse> getStoriesByGenre(String genre, int page, int size);
+
+    // Get story title by ID
+    String getStoryTitle(Long id);
 }

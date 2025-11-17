@@ -72,4 +72,10 @@ public class StoryController {
         }
         return ResponseEntity.ok(storyService.getStoriesByGenre(decoded, page, size));
     }
+
+    // Get story title (internal API for payment-service)
+    @GetMapping("/{id}/title")
+    public ResponseEntity<String> getStoryTitle(@PathVariable Long id) {
+        return ResponseEntity.ok(storyService.getStoryTitle(id));
+    }
 }
