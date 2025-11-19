@@ -2,6 +2,7 @@ package org.example.storyreading.notificationservice.config;
 
 import org.example.storyreading.notificationservice.dto.comment.CommentDeletedEvent;
 import org.example.storyreading.notificationservice.dto.comment.CommentEvent;
+import org.example.storyreading.notificationservice.dto.payment.PaymentNotificationEvent;
 import org.example.storyreading.notificationservice.dto.reaction.ReactionDeletedEvent;
 import org.example.storyreading.notificationservice.dto.reaction.ReactionEvent;
 import org.example.storyreading.notificationservice.dto.rating.RatingDeletedEvent;
@@ -44,6 +45,11 @@ public class RabbitMQConfig {
     public static final String RATING_ROUTING_KEY = "rating.created";
     public static final String RATING_DELETE_QUEUE = "rating-delete-queue";
     public static final String RATING_DELETE_ROUTING_KEY = "rating.deleted";
+
+    // === PAYMENT NOTIFICATION ===
+    public static final String PAYMENT_NOTIFICATION_EXCHANGE = "payment.notification.exchange";
+    public static final String PAYMENT_NOTIFICATION_QUEUE = "payment.notification.queue";
+    public static final String PAYMENT_NOTIFICATION_ROUTING_KEY = "payment.notification";
 
     // === COMMENT ===
     @Bean
@@ -123,6 +129,22 @@ public class RabbitMQConfig {
         return BindingBuilder.bind(ratingDeleteQueue).to(ratingExchange).with(RATING_DELETE_ROUTING_KEY);
     }
 
+    // === PAYMENT NOTIFICATION ===
+    @Bean
+    public Queue paymentNotificationQueue() {
+        return new Queue(PAYMENT_NOTIFICATION_QUEUE, true);
+    }
+
+    @Bean
+    public TopicExchange paymentNotificationExchange() {
+        return new TopicExchange(PAYMENT_NOTIFICATION_EXCHANGE);
+    }
+
+    @Bean
+    public Binding paymentNotificationBinding(Queue paymentNotificationQueue, TopicExchange paymentNotificationExchange) {
+        return BindingBuilder.bind(paymentNotificationQueue).to(paymentNotificationExchange).with(PAYMENT_NOTIFICATION_ROUTING_KEY);
+    }
+
     // === COMMON - CHỈ 1 BEAN ===
     @Bean
     public MessageConverter messageConverter() {
@@ -136,9 +158,13 @@ public class RabbitMQConfig {
         DefaultJackson2JavaTypeMapper typeMapper = new DefaultJackson2JavaTypeMapper();
         Map<String, Class<?>> idClassMapping = new HashMap<>();
 
-        // Comment events
+        // Comment events - Map cả 2 package paths
         idClassMapping.put(
                 "org.example.storyreading.commentservice.event.CommentNotificationEvent",
+                CommentEvent.class
+        );
+        idClassMapping.put(
+                "org.example.storyreading.commentservice.event.comment.CommentEvent",
                 CommentEvent.class
         );
         idClassMapping.put(
@@ -164,6 +190,12 @@ public class RabbitMQConfig {
         idClassMapping.put(
                 "org.example.storyreading.commentservice.event.rating.RatingDeletedEvent",
                 RatingDeletedEvent.class
+        );
+
+        // Payment notification events
+        idClassMapping.put(
+                "org.example.storyreading.paymentservice.dto.PaymentNotificationEvent",
+                PaymentNotificationEvent.class
         );
 
         typeMapper.setIdClassMapping(idClassMapping);

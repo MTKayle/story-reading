@@ -92,17 +92,27 @@ public class PaymentController {
 
         paymentService.handleVNPayCallback(vnpParams);
 
-        // Redirect to frontend with result
+        // Redirect to frontend homepage with result
         String responseCode = vnpParams.get("vnp_ResponseCode");
         String txnRef = vnpParams.get("vnp_TxnRef");
 
         if ("00".equals(responseCode)) {
-            return new RedirectView(frontendBaseUrl + "/payment/success?txnRef=" + txnRef);
+            // Payment success - redirect to homepage with success status
+            String successUrl = frontendBaseUrl + "/?paymentStatus=success"
+                    + (txnRef != null ? "&txnRef=" + txnRef : "");
+            log.info("Redirecting to homepage with success status: {}", successUrl);
+            RedirectView redirectView = new RedirectView(successUrl);
+            redirectView.setContextRelative(false);
+            return redirectView;
         }
 
-        String failureUrl = frontendBaseUrl + "/?paymentStatus=cancelled"
+        // Payment failed/cancelled - redirect to homepage with failure status
+        String failureUrl = frontendBaseUrl + "/?paymentStatus=failed"
                 + (txnRef != null ? "&txnRef=" + txnRef : "");
-        return new RedirectView(failureUrl);
+        log.info("Redirecting to homepage with failure status: {}", failureUrl);
+        RedirectView redirectView = new RedirectView(failureUrl);
+        redirectView.setContextRelative(false);
+        return redirectView;
     }
 
     @GetMapping("/transaction/{transactionId}")

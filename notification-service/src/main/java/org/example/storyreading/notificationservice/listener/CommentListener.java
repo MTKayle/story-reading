@@ -20,18 +20,41 @@ public class CommentListener {
     @RabbitListener(queues = RabbitMQConfig.COMMENT_QUEUE)
     public void handleCommentEvent(CommentEvent event) {
         try {
-            System.out.println("💬 New comment received: " + event.getContent());
-            System.out.println("👤 Author ID: " + event.getAuthorId());
-
-            // Validate trước khi xử lý
-            if (event.getAuthorId() == null) {
-                System.err.println("❌ Author ID is null, rejecting message!");
-                throw new AmqpRejectAndDontRequeueException("Invalid event: authorId is null");
+            System.out.println("💬 ========== New comment event received ==========");
+            System.out.println("💬 Event class: " + event.getClass().getName());
+            System.out.println("💬 Comment ID: " + event.getCommentId());
+            System.out.println("💬 Content: " + event.getContent());
+            System.out.println("💬 User ID (sender): " + event.getUserId());
+            System.out.println("💬 Author ID (story author): " + event.getAuthorId());
+            System.out.println("💬 Parent ID: " + event.getParentId());
+            System.out.println("💬 Parent User ID: " + event.getParentUserId());
+            System.out.println("💬 Story ID: " + event.getStoryId());
+            System.out.println("💬 =================================================");
+            
+            // Validate event không null
+            if (event == null) {
+                System.err.println("❌ Event is null!");
+                return;
             }
 
+            // Validate: cần có userId và storyId
+            if (event.getUserId() == null) {
+                System.err.println("❌ User ID is null, rejecting message!");
+                throw new AmqpRejectAndDontRequeueException("Invalid event: userId is null");
+            }
+            
+            if (event.getStoryId() == null) {
+                System.err.println("❌ Story ID is null, rejecting message!");
+                throw new AmqpRejectAndDontRequeueException("Invalid event: storyId is null");
+            }
+
+            // authorId có thể null nếu không phải comment cho tác giả truyện
+            // parentUserId có thể null nếu không phải reply
             notificationService.createCommentNotification(event);
+            System.out.println("✅ Comment notification processed successfully");
         } catch (Exception e) {
             System.err.println("❌ Failed to process comment event: " + e.getMessage());
+            e.printStackTrace();
             throw new AmqpRejectAndDontRequeueException("Failed to process", e);
         }
     }

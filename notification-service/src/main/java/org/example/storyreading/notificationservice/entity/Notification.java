@@ -34,6 +34,9 @@ public class Notification {
     @Column(name = "is_deleted", nullable = false)
     private Boolean isDeleted = false;
 
+    @Column(name = "is_read", nullable = false)
+    private Boolean isRead = false;
+
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt = LocalDateTime.now();
 
@@ -44,6 +47,9 @@ public class Notification {
         }
         if (isDeleted == null) {
             isDeleted = false;
+        }
+        if (isRead == null) {
+            isRead = false;
         }
     }
 }

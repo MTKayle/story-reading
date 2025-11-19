@@ -61,6 +61,12 @@ public class CommentController {
         List<Comment> rootComments = commentService.getRootCommentsByStoryId(storyId);
         return ResponseEntity.ok(rootComments);
     }
+
+    @GetMapping("/parent/{parentId}/replies")
+    public ResponseEntity<List<CommentResponse>> getRepliesByParentId(@PathVariable Long parentId) {
+        List<CommentResponse> replies = commentService.getRepliesByParentId(parentId);
+        return ResponseEntity.ok(replies);
+    }
 }
 
 
