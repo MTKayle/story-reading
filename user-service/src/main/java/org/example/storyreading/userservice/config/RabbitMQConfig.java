@@ -42,6 +42,8 @@ public class RabbitMQConfig {
     public RabbitTemplate rabbitTemplate(ConnectionFactory connectionFactory) {
         RabbitTemplate rabbitTemplate = new RabbitTemplate(connectionFactory);
         rabbitTemplate.setMessageConverter(messageConverter());
+        // Không throw exception khi không kết nối được
+        rabbitTemplate.setMandatory(false);
         return rabbitTemplate;
     }
 }

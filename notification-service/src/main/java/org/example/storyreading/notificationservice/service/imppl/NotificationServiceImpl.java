@@ -44,32 +44,74 @@ public class NotificationServiceImpl implements NotificationService {
 
     @Override
     public void createCommentNotification(CommentEvent event) {
-        // 1. Notification cho tác giả truyệ
-        if (!event.getUserId().equals(event.getAuthorId())) {
-            Notification n1 = Notification.builder()
-                    .recipientId(event.getAuthorId())
-                    .senderId(event.getUserId())
-                    .content("Người dùng " + event.getUserId() + " đã bình luận vào truyện của bạn.\n" + event.getContent())
-                    .link("/story/" + event.getStoryId() + "/comments#" + event.getCommentId())
-                    .typeId(event.getCommentId())
-                    .build();
-            System.out.println(n1.toString());
-            repository.save(n1);
-            messagingTemplate.convertAndSend("/topic/notifications/" + n1.getRecipientId(), n1);
+        System.out.println("📢 Processing comment notification event:");
+        System.out.println("  - CommentId: " + event.getCommentId());
+        System.out.println("  - UserId: " + event.getUserId());
+        System.out.println("  - AuthorId: " + event.getAuthorId());
+        System.out.println("  - ParentId: " + event.getParentId());
+        System.out.println("  - ParentUserId: " + event.getParentUserId());
+        System.out.println("  - StoryId: " + event.getStoryId());
+        
+        // 1. Notification cho tác giả truyện (chỉ khi comment root, không phải reply)
+        if (event.getAuthorId() != null && 
+            event.getUserId() != null && 
+            !event.getUserId().equals(event.getAuthorId()) &&
+            event.getParentId() == null) { // Chỉ gửi cho tác giả nếu là root comment
+            
+            try {
+                Notification n1 = Notification.builder()
+                        .recipientId(event.getAuthorId())
+                        .senderId(event.getUserId())
+                        .content("Người dùng " + event.getUserId() + " đã bình luận vào truyện của bạn.\n" + event.getContent())
+                        .link("/story/" + event.getStoryId() + "/comments#" + event.getCommentId())
+                        .typeId(event.getCommentId())
+                        .build();
+                
+                System.out.println("📢 Saving notification for author (userId: " + event.getAuthorId() + ")");
+                System.out.println("📢 Notification: " + n1.toString());
+                
+                Notification saved = repository.save(n1);
+                System.out.println("✅ Notification saved to database with ID: " + saved.getId());
+                
+                messagingTemplate.convertAndSend("/topic/notifications/" + n1.getRecipientId(), n1);
+                System.out.println("✅ Notification sent via WebSocket to user: " + n1.getRecipientId());
+            } catch (Exception e) {
+                System.err.println("❌ Failed to save/send notification to author: " + e.getMessage());
+                e.printStackTrace();
+            }
+        } else {
+            System.out.println("⚠️ Skipped author notification - authorId: " + event.getAuthorId() + ", parentId: " + event.getParentId());
         }
 
-        // 2. Notification cho người bị reply
-        if (event.getParentId() != null && !event.getParentId().equals(event.getUserId())) {
-            Notification n2 = Notification.builder()
-                    .recipientId(event.getParentId())
-                    .senderId(event.getUserId())
-                    .content("Người dùng " + event.getUserId() + " đã trả lời bình luận của bạn.\n" + event.getContent())
-                    .link("/story/" + event.getStoryId() + "/comments#" + event.getCommentId())
-                    .typeId(event.getCommentId())
-                    .build();
-            System.out.println(n2.toString());
-            repository.save(n2);
-            messagingTemplate.convertAndSend("/topic/notifications/" + n2.getRecipientId(), n2);
+        // 2. Notification cho người bị reply (khi có reply)
+        if (event.getParentId() != null && 
+            event.getParentUserId() != null && 
+            event.getUserId() != null &&
+            !event.getParentUserId().equals(event.getUserId())) {
+            
+            try {
+                Notification n2 = Notification.builder()
+                        .recipientId(event.getParentUserId())
+                        .senderId(event.getUserId())
+                        .content("Người dùng " + event.getUserId() + " đã trả lời bình luận của bạn.\n" + event.getContent())
+                        .link("/story/" + event.getStoryId() + "/comments#" + event.getCommentId())
+                        .typeId(event.getCommentId())
+                        .build();
+                
+                System.out.println("📢 Saving notification for parent user (userId: " + event.getParentUserId() + ")");
+                System.out.println("📢 Notification: " + n2.toString());
+                
+                Notification saved = repository.save(n2);
+                System.out.println("✅ Notification saved to database with ID: " + saved.getId());
+                
+                messagingTemplate.convertAndSend("/topic/notifications/" + n2.getRecipientId(), n2);
+                System.out.println("✅ Notification sent via WebSocket to user: " + n2.getRecipientId());
+            } catch (Exception e) {
+                System.err.println("❌ Failed to save/send notification to parent user: " + e.getMessage());
+                e.printStackTrace();
+            }
+        } else {
+            System.out.println("⚠️ Skipped reply notification - parentId: " + event.getParentId() + ", parentUserId: " + event.getParentUserId());
         }
     }
     @Override
@@ -124,6 +166,21 @@ public class NotificationServiceImpl implements NotificationService {
             System.out.println("✅ Soft-deleted notifications for commentId = " + typeId);
         } catch (Exception e) {
             System.err.println("❌ Failed to soft-delete notifications for commentId = " + typeId + ": " + e.getMessage());
+        }
+    }
+
+    @Transactional
+    @Override
+    public void markAsRead(Long notificationId) {
+        try {
+            Notification notification = repository.findById(notificationId)
+                    .orElseThrow(() -> new RuntimeException("Notification not found with id: " + notificationId));
+            notification.setIsRead(true);
+            repository.save(notification);
+            System.out.println("✅ Marked notification as read: " + notificationId);
+        } catch (Exception e) {
+            System.err.println("❌ Failed to mark notification as read: " + notificationId + ": " + e.getMessage());
+            throw e;
         }
     }
 

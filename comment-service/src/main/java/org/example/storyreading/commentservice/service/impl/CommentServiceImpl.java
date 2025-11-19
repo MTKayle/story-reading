@@ -30,6 +30,15 @@ public class CommentServiceImpl implements CommentService {
 
     @Override
     public CommentResponse createComment(CommentRequest request) {
+        // Validate parentId nếu có (đảm bảo parent comment tồn tại)
+        if (request.getParentId() != null) {
+            boolean parentExists = commentRepository.existsById(request.getParentId());
+            if (!parentExists) {
+                throw new RuntimeException("Parent comment không tồn tại với id: " + request.getParentId());
+            }
+            System.out.println("✅ Tạo reply cho comment id: " + request.getParentId());
+        }
+
         // Tạo entity mới
         Comment comment = Comment.builder()
                 .storyId(request.getStoryId())
@@ -41,6 +50,13 @@ public class CommentServiceImpl implements CommentService {
 
         // Lưu vào DB
         Comment saved = commentRepository.save(comment);
+        
+        // Log để đảm bảo parentId được lưu đúng
+        if (saved.getParentId() != null) {
+            System.out.println("✅ Reply đã được lưu vào database với id: " + saved.getId() + ", parentId: " + saved.getParentId());
+        } else {
+            System.out.println("✅ Root comment đã được lưu vào database với id: " + saved.getId());
+        }
 
         // Tạo response trả về client
         CommentResponse response = CommentResponse.builder()
@@ -59,16 +75,38 @@ public class CommentServiceImpl implements CommentService {
         messagingTemplate.convertAndSend("/topic/comments/" + saved.getChapterId(), response);
 
         // Tạo event để gửi sang notification-service qua RabbitMQ
+        // Lấy parentUserId nếu là reply
+        Long parentUserId = null;
+        if (saved.getParentId() != null) {
+            parentUserId = commentRepository.findUserIdByCommentId(saved.getParentId());
+            System.out.println("📝 Reply detected - ParentId: " + saved.getParentId() + ", ParentUserId: " + parentUserId);
+        }
+        
+        Long storyAuthorId = request.getStoryAuthorId();
+        if (storyAuthorId == null) {
+            System.out.println("⚠️ Warning: storyAuthorId is null - notification may not be sent to story author");
+        }
+        
         CommentEvent event = new CommentEvent(
                 saved.getId(),
                 saved.getContent(),
                 saved.getUserId(),
                 saved.getParentId(),
+                parentUserId,
                 saved.getStoryId(),
-                request.getStoryAuthorId() // TODO: Lấy authorId của truyện từ service StoryService
+                storyAuthorId
         );
 
+        System.out.println("📤 Publishing comment event to RabbitMQ:");
+        System.out.println("  - CommentId: " + event.getCommentId());
+        System.out.println("  - UserId: " + event.getUserId());
+        System.out.println("  - StoryId: " + event.getStoryId());
+        System.out.println("  - AuthorId: " + event.getAuthorId());
+        System.out.println("  - ParentId: " + event.getParentId());
+        System.out.println("  - ParentUserId: " + event.getParentUserId());
+        
         eventPublisher.publishCommentEvent(event);
+        System.out.println("✅ Comment event published successfully");
         return response;
     }
 
@@ -176,7 +214,28 @@ public class CommentServiceImpl implements CommentService {
 
     @Override
     public List<Comment> getRootCommentsByStoryId(Long storyId) {
-        return commentRepository.findByStoryIdAndChapterIdIsNullAndIsDeletedOrderByCreatedAtAsc(storyId, "No");
+        // Chỉ lấy root comments: chapterId IS NULL và parentId IS NULL
+        return commentRepository.findByStoryIdAndChapterIdIsNullAndIsDeletedOrderByCreatedAtAsc(storyId, "No")
+                .stream()
+                .filter(c -> c.getParentId() == null)  // Chỉ lấy root comments, không lấy replies
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<CommentResponse> getRepliesByParentId(Long parentId) {
+        return commentRepository.findByParentIdAndIsDeleted(parentId, "No")
+                .stream()
+                .map(c -> CommentResponse.builder()
+                        .id(c.getId())
+                        .storyId(c.getStoryId())
+                        .chapterId(c.getChapterId())
+                        .userId(c.getUserId())
+                        .parentId(c.getParentId())
+                        .content(c.getContent())
+                        .createdAt(c.getCreatedAt())
+                        .updatedAt(c.getUpdatedAt())
+                        .build())
+                .collect(Collectors.toList());
     }
 }
 

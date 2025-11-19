@@ -4,6 +4,7 @@ import org.example.storyreading.paymentservice.config.RabbitMQConfig;
 import org.example.storyreading.paymentservice.config.VNPayConfig;
 import org.example.storyreading.paymentservice.dto.DepositRequest;
 import org.example.storyreading.paymentservice.dto.PaymentEvent;
+import org.example.storyreading.paymentservice.dto.PaymentNotificationEvent;
 import org.example.storyreading.paymentservice.dto.VNPayResponse;
 import org.example.storyreading.paymentservice.entity.Payment;
 import org.example.storyreading.paymentservice.repository.PaymentRepository;
@@ -148,15 +149,28 @@ public class PaymentService {
             // Payment success
             payment.setStatus(Payment.PaymentStatus.SUCCESS);
             paymentRepository.save(payment);
-            log.info("Payment success for txnRef: {}", vnpTxnRef);
+            log.info("✅ Payment success for txnRef: {}, PaymentType: {}", vnpTxnRef, payment.getPaymentType());
 
-            // Send event to RabbitMQ
-            sendPaymentSuccessEvent(payment);
+            // Send event to RabbitMQ (only for DEPOSIT payments to update user balance)
+            if (Payment.PaymentType.DEPOSIT.equals(payment.getPaymentType())) {
+                log.info("💰 Sending DEPOSIT payment event to update user balance");
+                sendPaymentSuccessEvent(payment);
+            } else {
+                log.info("⚠️ Skipping event - PaymentType is not DEPOSIT: {}", payment.getPaymentType());
+            }
+
+            // Send payment notification event (for both DEPOSIT and PURCHASE)
+            sendPaymentNotificationEvent(payment, "SUCCESS", 
+                "Nạp tiền thành công! Số tiền: " + payment.getAmount() + " VND");
         } else {
             // Payment failed
             payment.setStatus(Payment.PaymentStatus.FAILED);
             paymentRepository.save(payment);
-            log.warn("Payment failed for txnRef: {}, responseCode: {}", vnpTxnRef, vnpResponseCode);
+            log.warn("❌ Payment failed for txnRef: {}, responseCode: {}", vnpTxnRef, vnpResponseCode);
+
+            // Send payment notification event for failed payment
+            sendPaymentNotificationEvent(payment, "FAILED", 
+                "Nạp tiền thất bại. Vui lòng thử lại hoặc liên hệ hỗ trợ.");
         }
     }
 
@@ -170,15 +184,55 @@ public class PaymentService {
             event.setPaymentType(payment.getPaymentType().name());
             event.setTimestamp(LocalDateTime.now());
 
+            log.info("💰 Sending payment success event to RabbitMQ:");
+            log.info("  - Exchange: {}", RabbitMQConfig.PAYMENT_EXCHANGE);
+            log.info("  - Routing Key: {}", RabbitMQConfig.PAYMENT_ROUTING_KEY);
+            log.info("  - UserId: {}", event.getUserId());
+            log.info("  - TransactionId: {}", event.getTransactionId());
+            log.info("  - Amount: {}", event.getAmount());
+            log.info("  - PaymentType: {}", event.getPaymentType());
+            log.info("  - Status: {}", event.getStatus());
+
             rabbitTemplate.convertAndSend(
                 RabbitMQConfig.PAYMENT_EXCHANGE,
                 RabbitMQConfig.PAYMENT_ROUTING_KEY,
                 event
             );
 
-            log.info("Payment success event sent to RabbitMQ for transaction: {}", payment.getTransactionId());
+            log.info("✅ Payment success event sent to RabbitMQ for transaction: {}", payment.getTransactionId());
         } catch (Exception e) {
-            log.error("Failed to send payment event to RabbitMQ", e);
+            log.error("❌ Failed to send payment event to RabbitMQ", e);
+            e.printStackTrace();
+        }
+    }
+
+    private void sendPaymentNotificationEvent(Payment payment, String status, String message) {
+        try {
+            PaymentNotificationEvent event = new PaymentNotificationEvent();
+            event.setUserId(payment.getUserId());
+            event.setTransactionId(payment.getTransactionId());
+            event.setAmount(payment.getAmount());
+            event.setStatus(status);
+            event.setPaymentType(payment.getPaymentType().name());
+            event.setMessage(message);
+
+            log.info("🔔 Sending payment notification event to RabbitMQ:");
+            log.info("  - Exchange: {}", RabbitMQConfig.PAYMENT_NOTIFICATION_EXCHANGE);
+            log.info("  - Routing Key: {}", RabbitMQConfig.PAYMENT_NOTIFICATION_ROUTING_KEY);
+            log.info("  - UserId: {}", event.getUserId());
+            log.info("  - Status: {}", event.getStatus());
+            log.info("  - Message: {}", event.getMessage());
+
+            rabbitTemplate.convertAndSend(
+                RabbitMQConfig.PAYMENT_NOTIFICATION_EXCHANGE,
+                RabbitMQConfig.PAYMENT_NOTIFICATION_ROUTING_KEY,
+                event
+            );
+
+            log.info("✅ Payment notification event sent to RabbitMQ for transaction: {}", payment.getTransactionId());
+        } catch (Exception e) {
+            log.error("❌ Failed to send payment notification event to RabbitMQ", e);
+            e.printStackTrace();
         }
     }
 

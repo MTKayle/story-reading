@@ -8,16 +8,18 @@ public class CommentEvent implements Serializable {
     private String content;
     private Long userId;
     private Long parentId;
+    private Long parentUserId;
     private Long storyId;
     private Long authorId;
 
     public CommentEvent() {}
 
-    public CommentEvent(Long commentId, String content, Long userId, Long parentId, Long storyId, Long authorId) {
+    public CommentEvent(Long commentId, String content, Long userId, Long parentId, Long parentUserId, Long storyId, Long authorId) {
         this.commentId = commentId;
         this.content = content;
         this.userId = userId;
         this.parentId = parentId;
+        this.parentUserId = parentUserId;
         this.storyId = storyId;
         this.authorId = authorId;
     }
@@ -34,6 +36,9 @@ public class CommentEvent implements Serializable {
 
     public Long getParentId() { return parentId; }
     public void setParentId(Long parentId) { this.parentId = parentId; }
+
+    public Long getParentUserId() { return parentUserId; }
+    public void setParentUserId(Long parentUserId) { this.parentUserId = parentUserId; }
 
     public Long getStoryId() { return storyId; }
     public void setStoryId(Long storyId) { this.storyId = storyId; }

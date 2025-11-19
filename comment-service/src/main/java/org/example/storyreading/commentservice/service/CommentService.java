@@ -14,5 +14,6 @@ public interface CommentService {
     Comment blockComment(Long id);
     void deleteCommentsByStoryId(Long storyId);
     List<Comment> getRootCommentsByStoryId(Long storyId);
+    List<CommentResponse> getRepliesByParentId(Long parentId);
 }
 

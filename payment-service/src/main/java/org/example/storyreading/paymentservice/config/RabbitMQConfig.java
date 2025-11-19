@@ -23,6 +23,11 @@ public class RabbitMQConfig {
     public static final String STORY_PURCHASE_QUEUE = "story.purchase.queue";
     public static final String STORY_PURCHASE_ROUTING_KEY = "story.purchase.success";
 
+    // Payment notification configuration
+    public static final String PAYMENT_NOTIFICATION_EXCHANGE = "payment.notification.exchange";
+    public static final String PAYMENT_NOTIFICATION_QUEUE = "payment.notification.queue";
+    public static final String PAYMENT_NOTIFICATION_ROUTING_KEY = "payment.notification";
+
     @Bean
     public Queue paymentQueue() {
         return new Queue(PAYMENT_QUEUE, true);
@@ -31,6 +36,11 @@ public class RabbitMQConfig {
     @Bean
     public Queue storyPurchaseQueue() {
         return new Queue(STORY_PURCHASE_QUEUE, true);
+    }
+
+    @Bean
+    public Queue paymentNotificationQueue() {
+        return new Queue(PAYMENT_NOTIFICATION_QUEUE, true);
     }
 
     @Bean
@@ -44,6 +54,11 @@ public class RabbitMQConfig {
     }
 
     @Bean
+    public TopicExchange paymentNotificationExchange() {
+        return new TopicExchange(PAYMENT_NOTIFICATION_EXCHANGE);
+    }
+
+    @Bean
     public Binding paymentBinding(Queue paymentQueue, TopicExchange paymentExchange) {
         return BindingBuilder.bind(paymentQueue).to(paymentExchange).with(PAYMENT_ROUTING_KEY);
     }
@@ -51,6 +66,11 @@ public class RabbitMQConfig {
     @Bean
     public Binding storyPurchaseBinding() {
         return BindingBuilder.bind(storyPurchaseQueue()).to(storyPurchaseExchange()).with(STORY_PURCHASE_ROUTING_KEY);
+    }
+
+    @Bean
+    public Binding paymentNotificationBinding(Queue paymentNotificationQueue, TopicExchange paymentNotificationExchange) {
+        return BindingBuilder.bind(paymentNotificationQueue).to(paymentNotificationExchange).with(PAYMENT_NOTIFICATION_ROUTING_KEY);
     }
 
     @Bean

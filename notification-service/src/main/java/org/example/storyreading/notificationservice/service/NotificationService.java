@@ -14,4 +14,5 @@ public interface NotificationService {
     void createReactionNotification(ReactionEvent event);
     void createRatingNotification(RatingEvent event);
     void softDeleteByTypeId(Long commentId);
+    void markAsRead(Long notificationId);
 }

@@ -8,6 +8,7 @@ import org.example.storyreading.paymentservice.dto.VNPayResponse;
 import org.example.storyreading.paymentservice.entity.Payment;
 import org.example.storyreading.paymentservice.service.PaymentService;
 import org.example.storyreading.paymentservice.service.StoryPurchaseService;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.view.RedirectView;
@@ -30,11 +31,19 @@ public class PaymentController {
 
     private final PaymentService paymentService;
     private final StoryPurchaseService storyPurchaseService;
+    private final String frontendBaseUrl;
 
     // Explicit constructor to initialize final field (avoids Lombok dependency)
-    public PaymentController(PaymentService paymentService, StoryPurchaseService storyPurchaseService) {
+    public PaymentController(
+            PaymentService paymentService,
+            StoryPurchaseService storyPurchaseService,
+            @Value("${frontend.base-url:http://localhost:3000}") String frontendBaseUrl
+    ) {
         this.paymentService = paymentService;
         this.storyPurchaseService = storyPurchaseService;
+        this.frontendBaseUrl = frontendBaseUrl.endsWith("/")
+                ? frontendBaseUrl.substring(0, frontendBaseUrl.length() - 1)
+                : frontendBaseUrl;
     }
 
     @PostMapping(value = "/deposit",
@@ -83,15 +92,27 @@ public class PaymentController {
 
         paymentService.handleVNPayCallback(vnpParams);
 
-        // Redirect to frontend with result
+        // Redirect to frontend homepage with result
         String responseCode = vnpParams.get("vnp_ResponseCode");
         String txnRef = vnpParams.get("vnp_TxnRef");
 
         if ("00".equals(responseCode)) {
-            return new RedirectView("http://localhost:3000/payment/success?txnRef=" + txnRef);
-        } else {
-            return new RedirectView("http://localhost:3000/payment/failed?txnRef=" + txnRef);
+            // Payment success - redirect to homepage with success status
+            String successUrl = frontendBaseUrl + "/?paymentStatus=success"
+                    + (txnRef != null ? "&txnRef=" + txnRef : "");
+            log.info("Redirecting to homepage with success status: {}", successUrl);
+            RedirectView redirectView = new RedirectView(successUrl);
+            redirectView.setContextRelative(false);
+            return redirectView;
         }
+
+        // Payment failed/cancelled - redirect to homepage with failure status
+        String failureUrl = frontendBaseUrl + "/?paymentStatus=failed"
+                + (txnRef != null ? "&txnRef=" + txnRef : "");
+        log.info("Redirecting to homepage with failure status: {}", failureUrl);
+        RedirectView redirectView = new RedirectView(failureUrl);
+        redirectView.setContextRelative(false);
+        return redirectView;
     }
 
     @GetMapping("/transaction/{transactionId}")
