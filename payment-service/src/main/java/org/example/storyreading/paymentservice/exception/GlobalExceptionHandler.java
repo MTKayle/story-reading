@@ -40,8 +40,22 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(HttpMessageNotReadableException.class)
     public ResponseEntity<Map<String, Object>> handleBadJson(HttpMessageNotReadableException ex, HttpServletRequest request) {
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                .body(errorBody(HttpStatus.BAD_REQUEST, "Malformed JSON request", request.getRequestURI()));
+        String errorMsg = ex.getMessage();
+        // Log chi tiết để debug
+        System.err.println("=== JSON Parse Error ===");
+        System.err.println("Message: " + errorMsg);
+        System.err.println("Request URI: " + request.getRequestURI());
+        ex.printStackTrace();
+        
+        Map<String, Object> body = new HashMap<>();
+        String userMessage = "Malformed JSON request. Please check your request format.";
+        if (errorMsg != null && errorMsg.contains("BigDecimal")) {
+            userMessage = "Giá truyện phải là số hợp lệ (ví dụ: 50000).";
+        }
+        body.put("error", userMessage);
+        body.put("message", userMessage);
+        body.put("details", errorMsg);
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(body);
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
@@ -49,8 +63,13 @@ public class GlobalExceptionHandler {
         String errors = ex.getBindingResult().getFieldErrors().stream()
                 .map(FieldError::getDefaultMessage)
                 .collect(Collectors.joining(", "));
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                .body(errorBody(HttpStatus.BAD_REQUEST, errors.isEmpty() ? "Validation failed" : errors, request.getRequestURI()));
+        String errorMessage = errors.isEmpty() ? "Validation failed" : errors;
+        
+        // Return simple error format that frontend expects
+        Map<String, Object> body = new HashMap<>();
+        body.put("error", errorMessage);
+        body.put("message", errorMessage);
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(body);
     }
 
     @ExceptionHandler(HttpMediaTypeNotAcceptableException.class)

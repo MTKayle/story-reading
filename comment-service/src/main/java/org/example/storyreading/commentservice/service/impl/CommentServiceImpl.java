@@ -135,8 +135,8 @@ public class CommentServiceImpl implements CommentService {
         Comment comment = commentRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy bình luận có id = " + id));
 
-        // 1. Lấy tất cả comment con
-        List<Comment> childComments = commentRepository.findByParentIdAndIsDeleted(comment.getUserId(), "No");
+        // 1. Lấy tất cả comment con (tìm theo parentId = comment.getId())
+        List<Comment> childComments = commentRepository.findByParentIdAndIsDeleted(comment.getId(), "No");
         for (Comment child : childComments) {
             // 2. Xóa đệ quy từng comment con
             deleteComment(child.getId());

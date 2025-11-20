@@ -71,8 +71,8 @@ public class ChapterService implements IChapterService {
 
         StoryEntity story = chapter.getStory();
 
-        // Kiểm tra nếu truyện là paid (premium)
-        if (story.isPaid()) {
+        // Kiểm tra nếu truyện là premium (price > 0)
+        if (story.getPrice() > 0) {
             // Nếu là chapter 1 thì cho phép đọc miễn phí
             if (chapter.getChapterNumber() == 1) {
                 return toDto(chapter);

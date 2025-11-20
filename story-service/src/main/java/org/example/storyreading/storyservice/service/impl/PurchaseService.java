@@ -22,7 +22,7 @@ public class PurchaseService implements IPurchaseService {
     @Override
     public StoryDtos.PurchaseResponse purchaseStory(Long userId, Long storyId) {
         StoryEntity story = storyRepository.findById(storyId).orElseThrow(() -> new IllegalArgumentException("Story not found"));
-        if (!story.isPaid()) {
+        if (story.getPrice() <= 0) {
             throw new IllegalArgumentException("Story is free. No purchase required");
         }
         if (purchaseRepository.existsByUserIdAndStory(userId, story)) {

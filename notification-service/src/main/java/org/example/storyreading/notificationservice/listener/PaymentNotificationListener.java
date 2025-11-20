@@ -29,6 +29,7 @@ public class PaymentNotificationListener {
             System.out.println("💳 Amount: " + event.getAmount());
             System.out.println("💳 Status: " + event.getStatus());
             System.out.println("💳 PaymentType: " + event.getPaymentType());
+            System.out.println("💳 StoryId: " + event.getStoryId());
             System.out.println("💳 Message: " + event.getMessage());
             System.out.println("💳 ==========================================================");
 
@@ -54,11 +55,25 @@ public class PaymentNotificationListener {
                 }
             }
 
+            // Determine link based on payment type
+            String link = "/";
+            if ("PURCHASE".equals(event.getPaymentType()) && event.getStoryId() != null) {
+                // For purchase notifications, link to the purchased story detail page
+                link = "/story/" + event.getStoryId();
+                System.out.println("📖 Purchase notification - linking to story: " + link);
+            } else if ("DEPOSIT".equals(event.getPaymentType())) {
+                // For deposit notifications, link to homepage (no need to load story)
+                link = "/";
+                System.out.println("💰 Deposit notification - linking to homepage");
+            } else {
+                System.out.println("⚠️ Unknown payment type or missing storyId: " + event.getPaymentType() + ", storyId: " + event.getStoryId());
+            }
+
             Notification notification = Notification.builder()
                     .recipientId(event.getUserId())
                     .senderId(event.getUserId()) // Payment is from the user themselves
                     .content(event.getMessage())
-                    .link("/") // Link to homepage
+                    .link(link)
                     .typeId(typeId)
                     .isDeleted(false)
                     .isRead(false)

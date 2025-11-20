@@ -12,6 +12,7 @@ public class PaymentNotificationEvent implements Serializable {
     private String status; // SUCCESS, FAILED
     private String paymentType; // DEPOSIT, PURCHASE
     private String message;
+    private Long storyId; // For PURCHASE type - the story that was purchased
 
     public PaymentNotificationEvent() {
     }
@@ -71,6 +72,14 @@ public class PaymentNotificationEvent implements Serializable {
 
     public void setMessage(String message) {
         this.message = message;
+    }
+
+    public Long getStoryId() {
+        return storyId;
+    }
+
+    public void setStoryId(Long storyId) {
+        this.storyId = storyId;
     }
 }
 

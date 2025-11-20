@@ -72,4 +72,10 @@ public class StoryController {
         }
         return ResponseEntity.ok(storyService.getStoriesByGenre(decoded, page, size));
     }
+
+    // Get all unique genres
+    @GetMapping("/genres")
+    public ResponseEntity<List<String>> getAllGenres() {
+        return ResponseEntity.ok(storyService.getAllGenres());
+    }
 }

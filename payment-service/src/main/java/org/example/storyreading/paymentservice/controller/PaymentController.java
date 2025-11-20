@@ -70,11 +70,20 @@ public class PaymentController {
         log.info("Story purchase request from user: {}, storyId: {}, price: {}",
                 userId, request.getStoryId(), request.getPrice());
 
+        // Validate userId
+        if (userId == null || userId <= 0) {
+            log.error("Invalid userId: {}", userId);
+            return ResponseEntity.badRequest().body(Map.of("error", "User ID không hợp lệ"));
+        }
+
         try {
             Payment payment = storyPurchaseService.purchaseStory(userId, request);
             return ResponseEntity.ok(payment);
+        } catch (IllegalArgumentException e) {
+            log.error("Story purchase validation failed: {}", e.getMessage());
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         } catch (Exception e) {
-            log.error("Story purchase failed: {}", e.getMessage());
+            log.error("Story purchase failed: {}", e.getMessage(), e);
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
     }
