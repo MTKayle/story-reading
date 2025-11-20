@@ -168,6 +168,19 @@ public class StoryService implements IStoryService {
                 .stream().map(this::toDto).collect(Collectors.toList());
     }
 
+    @Override
+    public List<String> getAllGenres() {
+        return storyRepository.findAll().stream()
+                .map(StoryEntity::getGenres)
+                .filter(genres -> genres != null && !genres.isEmpty())
+                .flatMap(genres -> Arrays.stream(genres.split(",")))
+                .map(String::trim)
+                .filter(genre -> !genre.isEmpty())
+                .distinct()
+                .sorted()
+                .collect(Collectors.toList());
+    }
+
     private StoryDtos.StoryResponse toDto(StoryEntity s) {
         StoryDtos.StoryResponse dto = new StoryDtos.StoryResponse();
         dto.id = s.getId();
@@ -175,7 +188,8 @@ public class StoryService implements IStoryService {
         dto.description = s.getDescription();
         dto.genres = s.getGenres() == null || s.getGenres().isEmpty() ? null : Arrays.asList(s.getGenres().split(","));
         dto.coverImageId = s.getCoverImageId();
-        dto.paid = s.isPaid();
+        // Premium is determined by price > 0, but keep paid field for backward compatibility
+        dto.paid = s.getPrice() > 0;
         dto.price = s.getPrice();
         dto.author = s.getAuthor();
         return dto;

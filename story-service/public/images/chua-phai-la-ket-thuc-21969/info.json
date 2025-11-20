@@ -1,0 +1,81 @@
+{
+  "Tên truyện": "Chưa Phải Là Kết Thúc",
+  "Ảnh bìa": "/public/images/chua-phai-la-ket-thuc-21969/cover.jpg",
+  "Tác giả": "Đang Cập Nhật",
+  "Tình trạng": "Đang Cập Nhật",
+  "Lượt xem": "3,057",
+  "Lượt theo dõi": "32",
+  "Thể loại": [
+    "Manhua",
+    "Ngôn Tình",
+    "Xuyên Không"
+  ],
+  "Lượt thích": "0",
+  "Story ID": 7,
+  "Danh sách chương": [
+    {
+      "Số chương": 3.0,
+      "Tiêu đề": "Chương 3",
+      "URL": "https://truyenqqno.com/truyen-tranh/chua-phai-la-ket-thuc-21969-chap-3.html",
+      "Thư mục": "services\\story-service\\public\\images\\chua-phai-la-ket-thuc-21969\\3",
+      "Ảnh đã tải": [
+        "/public/images/chua-phai-la-ket-thuc-21969/3/001.jpg",
+        "/public/images/chua-phai-la-ket-thuc-21969/3/002.jpg",
+        "/public/images/chua-phai-la-ket-thuc-21969/3/003.jpg",
+        "/public/images/chua-phai-la-ket-thuc-21969/3/004.jpg",
+        "/public/images/chua-phai-la-ket-thuc-21969/3/005.jpg",
+        "/public/images/chua-phai-la-ket-thuc-21969/3/006.jpg",
+        "/public/images/chua-phai-la-ket-thuc-21969/3/007.jpg",
+        "/public/images/chua-phai-la-ket-thuc-21969/3/008.jpg",
+        "/public/images/chua-phai-la-ket-thuc-21969/3/009.jpg",
+        "/public/images/chua-phai-la-ket-thuc-21969/3/010.jpg",
+        "/public/images/chua-phai-la-ket-thuc-21969/3/011.jpg",
+        "/public/images/chua-phai-la-ket-thuc-21969/3/012.jpg",
+        "/public/images/chua-phai-la-ket-thuc-21969/3/013.jpg",
+        "/public/images/chua-phai-la-ket-thuc-21969/3/014.jpg",
+        "/public/images/chua-phai-la-ket-thuc-21969/3/015.jpg",
+        "/public/images/chua-phai-la-ket-thuc-21969/3/016.jpg",
+        "/public/images/chua-phai-la-ket-thuc-21969/3/017.jpg",
+        "/public/images/chua-phai-la-ket-thuc-21969/3/018.jpg",
+        "/public/images/chua-phai-la-ket-thuc-21969/3/019.jpg"
+      ]
+    },
+    {
+      "Số chương": 2.0,
+      "Tiêu đề": "Chương 2",
+      "URL": "https://truyenqqno.com/truyen-tranh/chua-phai-la-ket-thuc-21969-chap-2.html",
+      "Thư mục": "services\\story-service\\public\\images\\chua-phai-la-ket-thuc-21969\\2",
+      "Ảnh đã tải": [
+        "/public/images/chua-phai-la-ket-thuc-21969/2/001.jpg",
+        "/public/images/chua-phai-la-ket-thuc-21969/2/002.jpg",
+        "/public/images/chua-phai-la-ket-thuc-21969/2/003.jpg",
+        "/public/images/chua-phai-la-ket-thuc-21969/2/004.jpg",
+        "/public/images/chua-phai-la-ket-thuc-21969/2/005.jpg"
+      ]
+    },
+    {
+      "Số chương": 1.0,
+      "Tiêu đề": "Chương 1",
+      "URL": "https://truyenqqno.com/truyen-tranh/chua-phai-la-ket-thuc-21969-chap-1.html",
+      "Thư mục": "services\\story-service\\public\\images\\chua-phai-la-ket-thuc-21969\\1",
+      "Ảnh đã tải": [
+        "/public/images/chua-phai-la-ket-thuc-21969/1/001.jpg",
+        "/public/images/chua-phai-la-ket-thuc-21969/1/002.jpg",
+        "/public/images/chua-phai-la-ket-thuc-21969/1/003.jpg",
+        "/public/images/chua-phai-la-ket-thuc-21969/1/004.jpg",
+        "/public/images/chua-phai-la-ket-thuc-21969/1/005.jpg",
+        "/public/images/chua-phai-la-ket-thuc-21969/1/006.jpg"
+      ]
+    },
+    {
+      "Số chương": 0.0,
+      "Tiêu đề": "Chương 0",
+      "URL": "https://truyenqqno.com/truyen-tranh/chua-phai-la-ket-thuc-21969-chap-0.html",
+      "Thư mục": "services\\story-service\\public\\images\\chua-phai-la-ket-thuc-21969\\0",
+      "Ảnh đã tải": [
+        "/public/images/chua-phai-la-ket-thuc-21969/0/001.jpg",
+        "/public/images/chua-phai-la-ket-thuc-21969/0/002.jpg"
+      ]
+    }
+  ]
+}

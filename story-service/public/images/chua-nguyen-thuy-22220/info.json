@@ -1,0 +1,37 @@
+{
+  "Tên truyện": "Chúa Nguyên Thủy",
+  "Ảnh bìa": "/public/images/chua-nguyen-thuy-22220/cover.jpg",
+  "Tác giả": "Đang Cập Nhật, Mamchoi",
+  "Tình trạng": "Đang Cập Nhật",
+  "Lượt xem": "1,319",
+  "Lượt theo dõi": "18",
+  "Thể loại": [
+    "Action",
+    "Adventure",
+    "Drama",
+    "Fantasy",
+    "Ngôn Tình"
+  ],
+  "Lượt thích": "1",
+  "Story ID": 4,
+  "Danh sách chương": [
+    {
+      "Số chương": 1.0,
+      "Tiêu đề": "Chương 1",
+      "URL": "https://truyenqqno.com/truyen-tranh/chua-nguyen-thuy-22220-chap-1.html",
+      "Thư mục": "services\\story-service\\public\\images\\chua-nguyen-thuy-22220\\1",
+      "Ảnh đã tải": [
+        "/public/images/chua-nguyen-thuy-22220/1/001.jpg",
+        "/public/images/chua-nguyen-thuy-22220/1/002.jpg",
+        "/public/images/chua-nguyen-thuy-22220/1/003.jpg",
+        "/public/images/chua-nguyen-thuy-22220/1/004.jpg",
+        "/public/images/chua-nguyen-thuy-22220/1/005.jpg",
+        "/public/images/chua-nguyen-thuy-22220/1/006.jpg",
+        "/public/images/chua-nguyen-thuy-22220/1/007.jpg",
+        "/public/images/chua-nguyen-thuy-22220/1/008.jpg",
+        "/public/images/chua-nguyen-thuy-22220/1/009.jpg",
+        "/public/images/chua-nguyen-thuy-22220/1/010.jpg"
+      ]
+    }
+  ]
+}

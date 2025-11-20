@@ -58,6 +58,36 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
 
         HttpMethod method = request.getMethod();
 
+        // Các endpoint cần authentication ngay cả khi là GET
+        if (path.contains("/purchase/check") || path.contains("/purchase")) {
+            // Yêu cầu authentication cho purchase endpoints
+            String authHeader = request.getHeaders().getFirst("Authorization");
+            if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+                return onError(exchange, "Authentication required", HttpStatus.UNAUTHORIZED);
+            }
+            
+            String token = authHeader.substring(7);
+            if (!jwtUtils.validateToken(token)) {
+                return onError(exchange, "Invalid or expired token", HttpStatus.UNAUTHORIZED);
+            }
+            
+            try {
+                Long userId = jwtUtils.extractUserId(token);
+                String role = jwtUtils.extractRole(token);
+                String username = jwtUtils.extractUsername(token);
+
+                ServerHttpRequest modifiedRequest = request.mutate()
+                        .header("X-User-Id", userId != null ? userId.toString() : "")
+                        .header("X-User-Role", role != null ? role : "")
+                        .header("X-Username", username != null ? username : "")
+                        .build();
+
+                return chain.filter(exchange.mutate().request(modifiedRequest).build());
+            } catch (Exception e) {
+                return onError(exchange, "Error processing token", HttpStatus.UNAUTHORIZED);
+            }
+        }
+
         // Cho phép các GET request đến public GET endpoints mà không cần xác thực
         if (method.name().equalsIgnoreCase("GET") && isPublicGetEndpoint(path)) {
             return chain.filter(exchange);

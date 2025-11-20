@@ -22,6 +22,18 @@ public class PurchaseController {
             @RequestBody(required = false) StoryDtos.PurchaseRequest request) {
         return ResponseEntity.ok(purchaseService.purchaseStory(userId, storyId));
     }
+
+    @GetMapping("/{storyId}/purchase/check")
+    public ResponseEntity<StoryDtos.PurchaseResponse> checkPurchase(
+            @RequestHeader(value = "X-User-Id") Long userId,
+            @PathVariable Long storyId) {
+        boolean hasPurchased = purchaseService.hasPurchased(userId, storyId);
+        StoryDtos.PurchaseResponse resp = new StoryDtos.PurchaseResponse();
+        resp.storyId = storyId;
+        resp.userId = userId;
+        resp.purchased = hasPurchased;
+        return ResponseEntity.ok(resp);
+    }
 }
 
 
