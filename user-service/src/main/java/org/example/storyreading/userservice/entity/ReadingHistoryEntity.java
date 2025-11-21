@@ -1,5 +1,6 @@
 package org.example.storyreading.userservice.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 
 import java.time.Instant;
@@ -18,6 +19,7 @@ public class ReadingHistoryEntity {
     // Mỗi lịch sử đọc thuộc về 1 user
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
+    @JsonIgnore
     private UserEntity user;
 
     @Column(name = "story_id", nullable = false)

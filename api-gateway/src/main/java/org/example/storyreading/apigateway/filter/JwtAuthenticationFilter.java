@@ -29,6 +29,11 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
             "/api/auth/refresh",
             "/public/"
     );
+    
+    // Allow GET requests to public static files
+    private boolean isPublicStaticFile(String path, HttpMethod method) {
+        return method == HttpMethod.GET && (path.startsWith("/public/") || path.startsWith("/public/images/"));
+    }
 
     // Các endpoint public cho phép truy cập GET mà không cần xác thực
     private static  final List<String> PUBLIC_GET_ENDPOINTS = List.of(
@@ -57,6 +62,11 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
         }
 
         HttpMethod method = request.getMethod();
+        
+        // Cho phép GET requests đến static files (avatars, images)
+        if (isPublicStaticFile(path, method)) {
+            return chain.filter(exchange);
+        }
 
         // Các endpoint cần authentication ngay cả khi là GET
         if (path.contains("/purchase/check") || path.contains("/purchase")) {
