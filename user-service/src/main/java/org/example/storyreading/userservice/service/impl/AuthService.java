@@ -4,6 +4,7 @@ import org.example.storyreading.userservice.dto.AuthDtos;
 import org.example.storyreading.userservice.entity.RefreshTokenEntity;
 import org.example.storyreading.userservice.entity.RoleEntity;
 import org.example.storyreading.userservice.entity.UserEntity;
+import org.example.storyreading.userservice.entity.UserStatus;
 import org.example.storyreading.userservice.repository.RefreshTokenRepository;
 import org.example.storyreading.userservice.repository.RoleRepository;
 import org.example.storyreading.userservice.repository.UserRepository;
@@ -109,6 +110,11 @@ public class AuthService implements IAuthService {
         userDto.avatarUrl = user.getAvatarUrl();
         userDto.bio = user.getBio();
         userDto.role = user.getRole().getName();
+        userDto.status = user.getStatus() != null ? user.getStatus().name() : UserStatus.ACTIVE.name();
+        userDto.createdAt = user.getCreatedAt();
+        userDto.updatedAt = user.getUpdatedAt();
+        userDto.lockedAt = user.getLockedAt();
+        userDto.lockReason = user.getLockReason();
         
         return new AuthDtos.AuthResponse(accessToken, refreshToken, userDto);
     }
@@ -145,6 +151,11 @@ public class AuthService implements IAuthService {
         userDto.avatarUrl = user.getAvatarUrl();
         userDto.bio = user.getBio();
         userDto.role = user.getRole().getName();
+        userDto.status = user.getStatus() != null ? user.getStatus().name() : UserStatus.ACTIVE.name();
+        userDto.createdAt = user.getCreatedAt();
+        userDto.updatedAt = user.getUpdatedAt();
+        userDto.lockedAt = user.getLockedAt();
+        userDto.lockReason = user.getLockReason();
         
         return new AuthDtos.AuthResponse(accessToken, refreshToken, userDto);
     }
@@ -176,6 +187,11 @@ public class AuthService implements IAuthService {
         userDto.avatarUrl = user.getAvatarUrl();
         userDto.bio = user.getBio();
         userDto.role = user.getRole().getName();
+        userDto.status = user.getStatus() != null ? user.getStatus().name() : UserStatus.ACTIVE.name();
+        userDto.createdAt = user.getCreatedAt();
+        userDto.updatedAt = user.getUpdatedAt();
+        userDto.lockedAt = user.getLockedAt();
+        userDto.lockReason = user.getLockReason();
         
         return new AuthDtos.AuthResponse(accessToken, newRefresh, userDto);
     }

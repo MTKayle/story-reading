@@ -2,13 +2,16 @@ package org.example.storyreading.storyservice.service.impl;
 
 import org.example.storyreading.storyservice.dto.StoryDtos;
 import org.example.storyreading.storyservice.entity.ChapterEntity;
+import org.example.storyreading.storyservice.entity.GenreEntity;
 import org.example.storyreading.storyservice.entity.StoryEntity;
 import org.example.storyreading.storyservice.repository.ChapterRepository;
+import org.example.storyreading.storyservice.repository.GenreRepository;
 import org.example.storyreading.storyservice.repository.StoryRepository;
 import org.example.storyreading.storyservice.service.IStoryService;
 import org.example.storyreading.storyservice.util.SlugUtil;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -24,12 +27,15 @@ public class StoryService implements IStoryService {
     private final StoryRepository storyRepository;
     private final ChapterRepository chapterRepository;
     private final Path imagesDir;
+    private final GenreRepository genreRepository;
 
     public StoryService(StoryRepository storyRepository,
                         ChapterRepository chapterRepository,
+                        GenreRepository genreRepository,
                         @Value("${storage.public-dir:public}") String publicDir) {
         this.storyRepository = storyRepository;
         this.chapterRepository = chapterRepository;
+        this.genreRepository = genreRepository;
         this.imagesDir = Path.of(publicDir).resolve("images");
     }
 
@@ -170,7 +176,14 @@ public class StoryService implements IStoryService {
 
     @Override
     public List<String> getAllGenres() {
-        return storyRepository.findAll().stream()
+        List<GenreEntity> storedGenres = genreRepository.findAll(Sort.by(Sort.Direction.ASC, "name"));
+        if (!storedGenres.isEmpty()) {
+            return storedGenres.stream()
+                    .map(GenreEntity::getName)
+                    .collect(Collectors.toList());
+        }
+
+        List<String> computed = storyRepository.findAll().stream()
                 .map(StoryEntity::getGenres)
                 .filter(genres -> genres != null && !genres.isEmpty())
                 .flatMap(genres -> Arrays.stream(genres.split(",")))
@@ -179,6 +192,29 @@ public class StoryService implements IStoryService {
                 .distinct()
                 .sorted()
                 .collect(Collectors.toList());
+
+        if (!computed.isEmpty()) {
+            for (String name : computed) {
+                GenreEntity entity = new GenreEntity();
+                entity.setName(name);
+                entity.setSlug(generateUniqueSlug(name));
+                genreRepository.save(entity);
+            }
+        }
+        return computed;
+    }
+
+    private String generateUniqueSlug(String name) {
+        String base = SlugUtil.slugify(name);
+        if (!StringUtils.hasText(base)) {
+            base = "genre";
+        }
+        String candidate = base;
+        int counter = 1;
+        while (genreRepository.existsBySlug(candidate)) {
+            candidate = base + "-" + counter++;
+        }
+        return candidate;
     }
 
     private StoryDtos.StoryResponse toDto(StoryEntity s) {

@@ -72,7 +72,8 @@ public class CommentServiceImpl implements CommentService {
                 .build();
 
         // Gửi realtime comment mới qua WebSocket
-        messagingTemplate.convertAndSend("/topic/comments/" + saved.getChapterId(), response);
+        String channelId = saved.getChapterId() != null ? saved.getChapterId().toString() : "story-" + saved.getStoryId();
+        messagingTemplate.convertAndSend("/topic/comments/" + channelId, response);
 
         // Tạo event để gửi sang notification-service qua RabbitMQ
         // Lấy parentUserId nếu là reply
@@ -124,7 +125,8 @@ public class CommentServiceImpl implements CommentService {
         payload.put("action", "update");
         payload.put("comment", saved);
 
-        messagingTemplate.convertAndSend("/topic/comments/" + saved.getChapterId(), payload);
+        String channelId = saved.getChapterId() != null ? saved.getChapterId().toString() : "story-" + saved.getStoryId();
+        messagingTemplate.convertAndSend("/topic/comments/" + channelId, payload);
 
         return saved;
     }
@@ -156,7 +158,8 @@ public class CommentServiceImpl implements CommentService {
         Map<String, Object> payload = new HashMap<>();
         payload.put("action", "delete");
         payload.put("comment", saved);
-        messagingTemplate.convertAndSend("/topic/comments/" + saved.getChapterId(), payload);
+        String channelId = saved.getChapterId() != null ? saved.getChapterId().toString() : "story-" + saved.getStoryId();
+        messagingTemplate.convertAndSend("/topic/comments/" + channelId, payload);
 
         // 6. Gửi event RabbitMQ
         eventPublisher.publishCommentDeletedEvent(new CommentDeletedEvent(saved.getId(), reactionIds));
@@ -179,7 +182,8 @@ public class CommentServiceImpl implements CommentService {
         payload.put("action", "block");
         payload.put("comment", saved);
 
-        messagingTemplate.convertAndSend("/topic/comments/" + saved.getChapterId(), payload);
+        String channelId = saved.getChapterId() != null ? saved.getChapterId().toString() : "story-" + saved.getStoryId();
+        messagingTemplate.convertAndSend("/topic/comments/" + channelId, payload);
         // 🔥 Gửi RabbitMQ event chặn
         eventPublisher.publishCommentDeletedEvent(new CommentDeletedEvent(saved.getId(), reactionService.getReactionIdByCommentId(id)));
         return saved;

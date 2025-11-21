@@ -13,4 +13,9 @@ public interface StoryRepository extends JpaRepository<StoryEntity, Long> {
 
     // Find by genre contained in the comma-separated genres column (case-insensitive) with pagination
     Page<StoryEntity> findByGenresContainingIgnoreCase(String genre, Pageable pageable);
+
+    // Find all stories containing a specific genre (case-insensitive)
+    List<StoryEntity> findByGenresContainingIgnoreCase(String genre);
+
+    long countByGenresContainingIgnoreCase(String genre);
 }

@@ -49,7 +49,7 @@ public class StoryContentController {
     public ResponseEntity<String> uploadCover(@PathVariable Long storyId,
                                               @RequestParam("file") MultipartFile file) throws IOException {
         StoryEntity s = storyRepository.findById(storyId).orElseThrow(() -> new IllegalArgumentException("Story not found"));
-        String slug = SlugUtil.slugify(s.getTitle());
+        String slug = getSlugFromStory(s);
 
         String ext = getExtension(file.getOriginalFilename());
         Path storyDir = IMAGES_DIR.resolve(slug);
@@ -70,7 +70,7 @@ public class StoryContentController {
                                                             @PathVariable int chapterNumber,
                                                             @RequestParam("files") List<MultipartFile> files) throws IOException {
         StoryEntity s = storyRepository.findById(storyId).orElseThrow(() -> new IllegalArgumentException("Story not found"));
-        String slug = SlugUtil.slugify(s.getTitle());
+        String slug = getSlugFromStory(s);
 
         Path chapterDir = IMAGES_DIR.resolve(slug).resolve(String.valueOf(chapterNumber));
         Files.createDirectories(chapterDir);
@@ -119,7 +119,7 @@ public class StoryContentController {
             @RequestParam(required = false) List<String> filename,
             @RequestParam(required = false) Integer index) {
         StoryEntity s = storyRepository.findById(storyId).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Story not found"));
-        String slug = SlugUtil.slugify(s.getTitle());
+        String slug = getSlugFromStory(s);
         Path chapterDir = IMAGES_DIR.resolve(slug).resolve(String.valueOf(chapterNumber));
 
         ChapterEntity chapter = chapterRepository.findByStoryAndChapterNumber(s, chapterNumber).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Chapter not found"));
@@ -168,34 +168,17 @@ public class StoryContentController {
                 throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Provide filename(s) or index to delete");
             }
 
-            // Reindex remaining files so filenames are sequential (001, 002, ...)
-            if (!images.isEmpty()) {
-                List<String> newUrls = new ArrayList<>();
-                for (int i = 0; i < images.size(); i++) {
-                    String curUrl = images.get(i);
-                    String curFilename = curUrl.substring(curUrl.lastIndexOf('/') + 1);
-                    String ext = "";
-                    if (curFilename.contains(".")) {
-                        ext = curFilename.substring(curFilename.lastIndexOf('.') + 1);
-                    }
-                    String desiredName = String.format("%03d%s", i + 1, ext.isEmpty() ? "" : "." + ext);
-                    Path curPath = chapterDir.resolve(curFilename);
-                    Path desiredPath = chapterDir.resolve(desiredName);
-                    if (!curFilename.equals(desiredName) && Files.exists(curPath)) {
-                        Files.move(curPath, desiredPath, StandardCopyOption.REPLACE_EXISTING);
-                    }
-                    newUrls.add("/public/images/" + slug + "/" + chapterNumber + "/" + desiredName);
-                }
-                images = newUrls;
-            }
-
         } catch (IOException e) {
-            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Failed to delete or reindex image files: " + e.getMessage());
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Failed to delete image files: " + e.getMessage());
         }
 
-        chapter.setImageIds(images.isEmpty() ? null : String.join(",", images));
+        // Normalize remaining image paths to slug-based structure
+        List<String> normalizedImages = normalizeImagePaths(images, slug, chapterNumber);
+
+        chapter.setImageIds(normalizedImages.isEmpty() ? null : String.join(",", normalizedImages));
         chapterRepository.save(chapter);
-        return ResponseEntity.ok(removed);
+        List<String> normalizedRemoved = normalizeImagePaths(removed, slug, chapterNumber);
+        return ResponseEntity.ok(normalizedRemoved);
     }
 
     // Replace an existing image (by filename or index) with uploaded file. Keep the filename so order remains.
@@ -362,5 +345,32 @@ public class StoryContentController {
         } catch (IOException e) {
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Failed to write replacement files: " + e.getMessage());
         }
+    }
+
+    private String getSlugFromStory(StoryEntity story) {
+        String cover = story.getCoverImageId();
+        if (StringUtils.hasText(cover) && cover.contains("/public/images/")) {
+            String remainder = cover.substring(cover.indexOf("/public/images/") + "/public/images/".length());
+            int slashIndex = remainder.indexOf('/');
+            if (slashIndex > 0) {
+                return remainder.substring(0, slashIndex);
+            }
+        }
+        return SlugUtil.slugify(story.getTitle());
+    }
+
+    private List<String> normalizeImagePaths(List<String> urls, String slug, int chapterNumber) {
+        List<String> normalized = new ArrayList<>();
+        if (urls == null) return normalized;
+        for (String url : urls) {
+            if (!StringUtils.hasText(url)) continue;
+            String normalizedUrl = url;
+            if (!url.contains("/public/images/" + slug + "/" + chapterNumber + "/")) {
+                String filename = url.substring(url.lastIndexOf('/') + 1);
+                normalizedUrl = "/public/images/" + slug + "/" + chapterNumber + "/" + filename;
+            }
+            normalized.add(normalizedUrl);
+        }
+        return normalized;
     }
 }
