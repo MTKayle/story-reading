@@ -8,4 +8,6 @@ public interface RatingService {
     RatingResponse rate(RatingRequest request); // thêm/sửa đánh giá
     void removeRating(Long userId, Long storyId); // hủy đánh giá
     void deleteRatingsByStoryId(Long storyId);
+    RatingResponse getRating(Long storyId); // lấy average rating
+    Integer getUserRating(Long userId, Long storyId); // lấy rating của user
 }

@@ -25,6 +25,17 @@ public class RatingController {
         ratingService.removeRating(userId, storyId);
         return ResponseEntity.ok("Rating removed");
     }
+
+    @GetMapping("/{storyId}")
+    public ResponseEntity<RatingResponse> getRating(@PathVariable Long storyId){
+        return ResponseEntity.ok(ratingService.getRating(storyId));
+    }
+
+    @GetMapping("/user/{userId}/story/{storyId}")
+    public ResponseEntity<?> getUserRating(@PathVariable Long userId, @PathVariable Long storyId){
+        Integer stars = ratingService.getUserRating(userId, storyId);
+        return ResponseEntity.ok(java.util.Map.of("stars", stars != null ? stars : 0));
+    }
 }
 
 

@@ -29,6 +29,11 @@ public class AuthController {
     public ResponseEntity<AuthDtos.AuthResponse> refresh(@RequestBody AuthDtos.RefreshTokenRequest request) {
         return ResponseEntity.ok(authService.refresh(request));
     }
+
+    @PostMapping("/google")
+    public ResponseEntity<AuthDtos.AuthResponse> googleAuth(@RequestBody AuthDtos.GoogleAuthRequest request) {
+        return ResponseEntity.ok(authService.googleAuth(request));
+    }
 }
 
 

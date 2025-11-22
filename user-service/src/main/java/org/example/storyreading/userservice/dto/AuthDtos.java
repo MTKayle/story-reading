@@ -19,6 +19,10 @@ public class AuthDtos {
         public String refreshToken;
     }
 
+    public static class GoogleAuthRequest {
+        public String idToken;
+    }
+
     public static class AuthResponse {
         public String token; // accessToken, đổi tên để tương thích với frontend
         public String accessToken; // Giữ lại để tương thích

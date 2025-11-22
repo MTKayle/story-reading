@@ -15,6 +15,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import java.nio.charset.StandardCharsets;
+import java.util.Base64;
+import java.util.Map;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Optional;
@@ -194,6 +198,103 @@ public class AuthService implements IAuthService {
         userDto.lockReason = user.getLockReason();
         
         return new AuthDtos.AuthResponse(accessToken, newRefresh, userDto);
+    }
+
+    @Override
+    @Transactional
+    public AuthDtos.AuthResponse googleAuth(AuthDtos.GoogleAuthRequest request) {
+        if (request.idToken == null || request.idToken.trim().isEmpty()) {
+            throw new IllegalArgumentException("ID Token không được để trống");
+        }
+
+        try {
+            // Decode Google ID Token (JWT) để lấy thông tin
+            String[] parts = request.idToken.split("\\.");
+            if (parts.length != 3) {
+                throw new IllegalArgumentException("ID Token không hợp lệ");
+            }
+
+            // Decode payload (phần thứ 2)
+            String payload = new String(Base64.getUrlDecoder().decode(parts[1]), StandardCharsets.UTF_8);
+            ObjectMapper mapper = new ObjectMapper();
+            Map<String, Object> claims = mapper.readValue(payload, Map.class);
+
+            // Lấy thông tin từ claims
+            String email = (String) claims.get("email");
+            String name = (String) claims.get("name");
+            String givenName = (String) claims.get("given_name");
+            String familyName = (String) claims.get("family_name");
+            String picture = (String) claims.get("picture");
+
+            if (email == null || email.trim().isEmpty()) {
+                throw new IllegalArgumentException("Email không tìm thấy trong ID Token");
+            }
+
+            // Tạo username từ email hoặc name
+            String username = email.split("@")[0]; // Lấy phần trước @ làm username
+            if (name != null && !name.trim().isEmpty()) {
+                // Ưu tiên dùng name nếu có
+                username = name.trim().replaceAll("\\s+", "").toLowerCase();
+            }
+
+            // Tìm user theo email
+            Optional<UserEntity> userOpt = userRepository.findByEmail(email);
+            UserEntity user;
+
+            if (userOpt.isPresent()) {
+                // User đã tồn tại, sử dụng user đó
+                user = userOpt.get();
+            } else {
+                // Tạo user mới
+                // Kiểm tra username đã tồn tại chưa
+                String finalUsername = username;
+                int suffix = 1;
+                while (userRepository.existsByUsername(finalUsername)) {
+                    finalUsername = username + suffix;
+                    suffix++;
+                }
+
+                RoleEntity role = roleRepository.findByName("USER")
+                        .orElseGet(() -> {
+                            RoleEntity r = new RoleEntity();
+                            r.setName("USER");
+                            return roleRepository.save(r);
+                        });
+
+                user = new UserEntity();
+                user.setUsername(finalUsername);
+                user.setEmail(email);
+                user.setPassword(passwordEncoder.encode(UUID.randomUUID().toString())); // Random password vì không cần
+                user.setRole(role);
+                user.setStatus(UserStatus.ACTIVE);
+                user = userRepository.save(user);
+            }
+
+            // Tạo token
+            String userEmail = user.getEmail() != null ? user.getEmail() : "";
+            String accessToken = jwtUtils.generateToken(user.getId(), user.getUsername(), user.getRole().getName(), userEmail);
+            String refreshToken = ensureRefreshToken(user);
+
+            // Tạo UserDto để trả về
+            org.example.storyreading.userservice.dto.UserDto userDto = new org.example.storyreading.userservice.dto.UserDto();
+            userDto.id = user.getId();
+            userDto.username = user.getUsername();
+            userDto.email = user.getEmail();
+            userDto.avatarUrl = user.getAvatarUrl();
+            userDto.bio = user.getBio();
+            userDto.role = user.getRole().getName();
+            userDto.status = user.getStatus() != null ? user.getStatus().name() : UserStatus.ACTIVE.name();
+            userDto.createdAt = user.getCreatedAt();
+            userDto.updatedAt = user.getUpdatedAt();
+            userDto.lockedAt = user.getLockedAt();
+            userDto.lockReason = user.getLockReason();
+
+            return new AuthDtos.AuthResponse(accessToken, refreshToken, userDto);
+        } catch (IllegalArgumentException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new IllegalArgumentException("Lỗi xử lý Google ID Token: " + e.getMessage());
+        }
     }
 
     private String ensureRefreshToken(UserEntity user) {

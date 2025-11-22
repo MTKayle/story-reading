@@ -97,5 +97,21 @@ public class RatingServiceImpl implements RatingService {
         }
         ratingRepository.deleteByStoryId(storyId);
     }
+
+    @Override
+    public RatingResponse getRating(Long storyId) {
+        Double avg = ratingRepository.getAverageRating(storyId);
+        return RatingResponse.builder()
+                .storyId(storyId)
+                .averageStars(avg)
+                .build();
+    }
+
+    @Override
+    public Integer getUserRating(Long userId, Long storyId) {
+        return ratingRepository.findByUserIdAndStoryId(userId, storyId)
+                .map(Rating::getStars)
+                .orElse(null);
+    }
 }
 
