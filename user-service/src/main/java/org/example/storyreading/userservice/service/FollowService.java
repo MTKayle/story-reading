@@ -7,5 +7,6 @@ public interface FollowService {
     boolean unfollowStory(Long userId, Long storyId);
     boolean isFollowing(Long userId, Long storyId);
     List<Long> getFollowedStoryIds(Long userId);
+    List<Long> getFollowersByStoryId(Long storyId);
 }
 

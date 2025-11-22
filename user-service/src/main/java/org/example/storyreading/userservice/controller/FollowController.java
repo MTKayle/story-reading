@@ -113,5 +113,16 @@ public class FollowController {
             return ResponseEntity.status(500).body(Map.of("error", e.getMessage()));
         }
     }
+
+    @GetMapping("/story/{storyId}/followers")
+    public ResponseEntity<?> getFollowersByStoryId(@PathVariable Long storyId) {
+        try {
+            List<Long> userIds = followService.getFollowersByStoryId(storyId);
+            return ResponseEntity.ok(userIds);
+        } catch (Exception e) {
+            log.error("❌ Error getting followers for storyId {}: {}", storyId, e.getMessage());
+            return ResponseEntity.status(500).body(Map.of("error", e.getMessage()));
+        }
+    }
 }
 

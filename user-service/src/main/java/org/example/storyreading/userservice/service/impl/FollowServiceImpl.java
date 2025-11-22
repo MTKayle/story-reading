@@ -82,5 +82,13 @@ public class FollowServiceImpl implements FollowService {
                 .map(FollowEntity::getStoryId)
                 .collect(Collectors.toList());
     }
+
+    @Override
+    public List<Long> getFollowersByStoryId(Long storyId) {
+        return followRepository.findByStoryId(storyId)
+                .stream()
+                .map(follow -> follow.getUser().getId())
+                .collect(Collectors.toList());
+    }
 }
 

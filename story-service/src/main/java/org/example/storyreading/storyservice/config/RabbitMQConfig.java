@@ -18,6 +18,10 @@ public class RabbitMQConfig {
     public static final String STORY_PURCHASE_QUEUE = "story.purchase.queue";
     public static final String STORY_PURCHASE_ROUTING_KEY = "story.purchase.success";
 
+    public static final String NEW_CHAPTER_EXCHANGE = "story.chapter.exchange";
+    public static final String NEW_CHAPTER_QUEUE = "story.chapter.new.queue";
+    public static final String NEW_CHAPTER_ROUTING_KEY = "story.chapter.new";
+
     @Bean
     public Queue storyPurchaseQueue() {
         return new Queue(STORY_PURCHASE_QUEUE, true);
@@ -33,6 +37,23 @@ public class RabbitMQConfig {
         return BindingBuilder.bind(storyPurchaseQueue())
                 .to(storyPurchaseExchange())
                 .with(STORY_PURCHASE_ROUTING_KEY);
+    }
+
+    @Bean
+    public Queue newChapterQueue() {
+        return new Queue(NEW_CHAPTER_QUEUE, true);
+    }
+
+    @Bean
+    public TopicExchange newChapterExchange() {
+        return new TopicExchange(NEW_CHAPTER_EXCHANGE);
+    }
+
+    @Bean
+    public Binding newChapterBinding() {
+        return BindingBuilder.bind(newChapterQueue())
+                .to(newChapterExchange())
+                .with(NEW_CHAPTER_ROUTING_KEY);
     }
 
     @Bean

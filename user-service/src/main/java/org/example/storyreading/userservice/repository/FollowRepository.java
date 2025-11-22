@@ -12,6 +12,7 @@ public interface FollowRepository extends JpaRepository<FollowEntity, Long> {
     Optional<FollowEntity> findByUserIdAndStoryId(Long userId, Long storyId);
     boolean existsByUserIdAndStoryId(Long userId, Long storyId);
     List<FollowEntity> findByUserIdOrderByCreatedAtDesc(Long userId);
+    List<FollowEntity> findByStoryId(Long storyId);
     void deleteByUserIdAndStoryId(Long userId, Long storyId);
 }
 

@@ -1,6 +1,8 @@
 package org.example.storyreading.notificationservice.service.imppl;
 
 import jakarta.transaction.Transactional;
+import org.example.storyreading.notificationservice.client.UserServiceClient;
+import org.example.storyreading.notificationservice.dto.chapter.NewChapterEvent;
 import org.example.storyreading.notificationservice.dto.comment.CommentEvent;
 import org.example.storyreading.notificationservice.dto.rating.RatingEvent;
 import org.example.storyreading.notificationservice.dto.reaction.ReactionEvent;
@@ -41,6 +43,19 @@ public class NotificationServiceImpl implements NotificationService {
     private NotificationRepository repository;
     @Autowired
     private SimpMessagingTemplate messagingTemplate;
+    @Autowired
+    private UserServiceClient userServiceClient;
+
+    /**
+     * Lấy username từ userId, fallback về "Người dùng {userId}" nếu không tìm thấy
+     */
+    private String getUserDisplayName(Long userId) {
+        if (userId == null) {
+            return "Người dùng";
+        }
+        String username = userServiceClient.getUsername(userId);
+        return username != null ? username : "Người dùng " + userId;
+    }
 
     @Override
     public void createCommentNotification(CommentEvent event) {
@@ -59,10 +74,11 @@ public class NotificationServiceImpl implements NotificationService {
             event.getParentId() == null) { // Chỉ gửi cho tác giả nếu là root comment
             
             try {
+                String username = getUserDisplayName(event.getUserId());
                 Notification n1 = Notification.builder()
                         .recipientId(event.getAuthorId())
                         .senderId(event.getUserId())
-                        .content("Người dùng " + event.getUserId() + " đã bình luận vào truyện của bạn.\n" + event.getContent())
+                        .content(username + " đã bình luận vào truyện của bạn.\n" + event.getContent())
                         .link("/story/" + event.getStoryId() + "/comments#" + event.getCommentId())
                         .typeId(event.getCommentId())
                         .build();
@@ -90,10 +106,11 @@ public class NotificationServiceImpl implements NotificationService {
             !event.getParentUserId().equals(event.getUserId())) {
             
             try {
+                String username = getUserDisplayName(event.getUserId());
                 Notification n2 = Notification.builder()
                         .recipientId(event.getParentUserId())
                         .senderId(event.getUserId())
-                        .content("Người dùng " + event.getUserId() + " đã trả lời bình luận của bạn.\n" + event.getContent())
+                        .content(username + " đã trả lời bình luận của bạn.\n" + event.getContent())
                         .link("/story/" + event.getStoryId() + "/comments#" + event.getCommentId())
                         .typeId(event.getCommentId())
                         .build();
@@ -118,10 +135,11 @@ public class NotificationServiceImpl implements NotificationService {
     public void createReactionNotification(ReactionEvent event) {
         // Không gửi notification nếu người thực hiện là chủ nhận
         if (!event.getUserId().equals(event.getAuthorId())) {
+            String username = getUserDisplayName(event.getUserId());
             Notification n = Notification.builder()
                     .recipientId(event.getAuthorId())
                     .senderId(event.getUserId())
-                    .content("Người dùng " + event.getUserId() + " đã " + event.getType() +
+                    .content(username + " đã " + event.getType() +
                             " bình luận của bạn")
                     .link(event.getCommentId() != null
                             ? "/story/" + event.getStoryId() + "/comments#" + event.getCommentId()
@@ -139,10 +157,11 @@ public class NotificationServiceImpl implements NotificationService {
     public void createRatingNotification(RatingEvent event) {
         // Không gửi notification nếu người thực hiện là tác giả
         if (!event.getUserId().equals(event.getAuthorId())) {
+            String username = getUserDisplayName(event.getUserId());
             Notification n = Notification.builder()
                     .recipientId(event.getAuthorId())
                     .senderId(event.getUserId())
-                    .content("Người dùng " + event.getUserId() + " đã đánh giá " + event.getStars() + " sao cho truyện của bạn")
+                    .content(username + " đã đánh giá " + event.getStars() + " sao cho truyện của bạn")
                     .link("/story/" + event.getStoryId())
                     .typeId(event.getRatingId())
                     .build();
@@ -151,6 +170,53 @@ public class NotificationServiceImpl implements NotificationService {
             messagingTemplate.convertAndSend("/topic/notifications/" + n.getRecipientId(), n);
             System.out.println("📢 Rating notification sent: " + n.getContent());
         }
+    }
+
+    @Override
+    public void createNewChapterNotification(NewChapterEvent event) {
+        System.out.println("📖 ========== Processing new chapter notification ==========");
+        System.out.println("📖 Story ID: " + event.getStoryId());
+        System.out.println("📖 Story Title: " + event.getStoryTitle());
+        System.out.println("📖 Chapter Number: " + event.getChapterNumber());
+        System.out.println("📖 Chapter Title: " + event.getChapterTitle());
+        
+        // Lấy danh sách user đang follow truyện
+        System.out.println("📖 Fetching followers from user-service...");
+        List<Long> followerIds = userServiceClient.getFollowersByStoryId(event.getStoryId());
+        System.out.println("📖 Found " + followerIds.size() + " followers for storyId: " + event.getStoryId());
+
+        if (followerIds.isEmpty()) {
+            System.out.println("⚠️ No followers found for storyId: " + event.getStoryId() + ". Skipping notification.");
+            return;
+        }
+
+        // Tạo notification cho từng user đang follow
+        String storyTitle = event.getStoryTitle() != null ? event.getStoryTitle() : "Truyện";
+        String chapterTitle = event.getChapterTitle() != null ? event.getChapterTitle() : "Chương " + event.getChapterNumber();
+        String content = storyTitle + " đã có chương mới: " + chapterTitle;
+        String link = "/story/" + event.getStoryId() + "/chapter/" + event.getChapterNumber();
+
+        int successCount = 0;
+        for (Long followerId : followerIds) {
+            try {
+                Notification notification = Notification.builder()
+                        .recipientId(followerId)
+                        .senderId(null) // Không có sender cho notification này
+                        .content(content)
+                        .link(link)
+                        .typeId(event.getChapterId())
+                        .build();
+
+                Notification saved = repository.save(notification);
+                messagingTemplate.convertAndSend("/topic/notifications/" + followerId, saved);
+                successCount++;
+                System.out.println("✅ Notification sent to user " + followerId);
+            } catch (Exception e) {
+                System.err.println("❌ Failed to send notification to user " + followerId + ": " + e.getMessage());
+            }
+        }
+
+        System.out.println("✅ Successfully sent " + successCount + "/" + followerIds.size() + " new chapter notifications");
     }
 
     @Override

@@ -1,5 +1,6 @@
 package org.example.storyreading.notificationservice.service;
 
+import org.example.storyreading.notificationservice.dto.chapter.NewChapterEvent;
 import org.example.storyreading.notificationservice.dto.comment.CommentEvent;
 import org.example.storyreading.notificationservice.dto.rating.RatingEvent;
 import org.example.storyreading.notificationservice.dto.reaction.ReactionEvent;
@@ -13,6 +14,7 @@ public interface NotificationService {
     List<Notification> getNotificationsForUser(Long recipientId);
     void createReactionNotification(ReactionEvent event);
     void createRatingNotification(RatingEvent event);
+    void createNewChapterNotification(NewChapterEvent event);
     void softDeleteByTypeId(Long commentId);
     void markAsRead(Long notificationId);
 }

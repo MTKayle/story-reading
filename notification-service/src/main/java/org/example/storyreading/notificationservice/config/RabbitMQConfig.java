@@ -1,5 +1,6 @@
 package org.example.storyreading.notificationservice.config;
 
+import org.example.storyreading.notificationservice.dto.chapter.NewChapterEvent;
 import org.example.storyreading.notificationservice.dto.comment.CommentDeletedEvent;
 import org.example.storyreading.notificationservice.dto.comment.CommentEvent;
 import org.example.storyreading.notificationservice.dto.payment.PaymentNotificationEvent;
@@ -50,6 +51,11 @@ public class RabbitMQConfig {
     public static final String PAYMENT_NOTIFICATION_EXCHANGE = "payment.notification.exchange";
     public static final String PAYMENT_NOTIFICATION_QUEUE = "payment.notification.queue";
     public static final String PAYMENT_NOTIFICATION_ROUTING_KEY = "payment.notification";
+
+    // === NEW CHAPTER ===
+    public static final String NEW_CHAPTER_EXCHANGE = "story.chapter.exchange";
+    public static final String NEW_CHAPTER_QUEUE = "story.chapter.new.queue";
+    public static final String NEW_CHAPTER_ROUTING_KEY = "story.chapter.new";
 
     // === COMMENT ===
     @Bean
@@ -145,6 +151,22 @@ public class RabbitMQConfig {
         return BindingBuilder.bind(paymentNotificationQueue).to(paymentNotificationExchange).with(PAYMENT_NOTIFICATION_ROUTING_KEY);
     }
 
+    // === NEW CHAPTER ===
+    @Bean
+    public Queue newChapterQueue() {
+        return new Queue(NEW_CHAPTER_QUEUE, true);
+    }
+
+    @Bean
+    public TopicExchange newChapterExchange() {
+        return new TopicExchange(NEW_CHAPTER_EXCHANGE);
+    }
+
+    @Bean
+    public Binding newChapterBinding(Queue newChapterQueue, TopicExchange newChapterExchange) {
+        return BindingBuilder.bind(newChapterQueue).to(newChapterExchange).with(NEW_CHAPTER_ROUTING_KEY);
+    }
+
     // === COMMON - CHỈ 1 BEAN ===
     @Bean
     public MessageConverter messageConverter() {
@@ -196,6 +218,12 @@ public class RabbitMQConfig {
         idClassMapping.put(
                 "org.example.storyreading.paymentservice.dto.PaymentNotificationEvent",
                 PaymentNotificationEvent.class
+        );
+
+        // New chapter events
+        idClassMapping.put(
+                "org.example.storyreading.storyservice.dto.NewChapterEvent",
+                NewChapterEvent.class
         );
 
         typeMapper.setIdClassMapping(idClassMapping);
