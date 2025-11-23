@@ -30,6 +30,14 @@ public class ReactionController {
     public ResponseEntity<?> getReactionCounts(@PathVariable Long commentId) {
         return ResponseEntity.ok(reactionService.getReactionCounts(commentId));
     }
+
+    @GetMapping("/user/{userId}/comment/{commentId}")
+    public ResponseEntity<?> getUserReaction(@PathVariable Long userId, @PathVariable Long commentId) {
+        org.example.storyreading.commentservice.entity.Reaction.ReactionType type = reactionService.getUserReaction(userId, commentId);
+        java.util.Map<String, String> response = new java.util.HashMap<>();
+        response.put("type", type != null ? type.name() : null);
+        return ResponseEntity.ok(response);
+    }
 }
 
 

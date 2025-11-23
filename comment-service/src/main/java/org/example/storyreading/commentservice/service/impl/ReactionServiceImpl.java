@@ -141,4 +141,11 @@ public class ReactionServiceImpl implements ReactionService {
         }
         return counts;
     }
+
+    @Override
+    public ReactionType getUserReaction(Long userId, Long commentId) {
+        return reactionRepository.findByUserIdAndCommentId(userId, commentId)
+                .map(Reaction::getType)
+                .orElse(null);
+    }
 }

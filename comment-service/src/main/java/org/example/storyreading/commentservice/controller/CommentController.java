@@ -67,6 +67,21 @@ public class CommentController {
         List<CommentResponse> replies = commentService.getRepliesByParentId(parentId);
         return ResponseEntity.ok(replies);
     }
+
+    // Admin endpoints
+    @GetMapping("/admin/all")
+    public ResponseEntity<List<Comment>> getAllCommentsForAdmin(
+            @RequestParam(required = false) Long storyId,
+            @RequestParam(required = false) String isDeleted) {
+        List<Comment> comments = commentService.getAllCommentsForAdmin(storyId, isDeleted);
+        return ResponseEntity.ok(comments);
+    }
+
+    @PutMapping("/{id}/unblock")
+    public ResponseEntity<Comment> unblockComment(@PathVariable Long id) {
+        Comment unblocked = commentService.unblockComment(id);
+        return ResponseEntity.ok(unblocked);
+    }
 }
 
 

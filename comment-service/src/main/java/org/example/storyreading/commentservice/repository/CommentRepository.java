@@ -23,6 +23,11 @@ public interface CommentRepository extends JpaRepository<Comment, Long> {
     List<Long> findIdByParentId(Long parentId);
     // Lấy tất cả comment chưa xóa theo storyId và chapterId = null
     List<Comment> findByStoryIdAndChapterIdIsNullAndIsDeletedOrderByCreatedAtAsc(Long storyId, String isDeleted);
+    // Lấy tất cả comments (admin) - có thể filter theo storyId và isDeleted
+    List<Comment> findAllByOrderByCreatedAtDesc();
+    List<Comment> findByStoryIdOrderByCreatedAtDesc(Long storyId);
+    List<Comment> findByIsDeletedOrderByCreatedAtDesc(String isDeleted);
+    List<Comment> findByStoryIdAndIsDeletedOrderByCreatedAtDesc(Long storyId, String isDeleted);
 }
 
 

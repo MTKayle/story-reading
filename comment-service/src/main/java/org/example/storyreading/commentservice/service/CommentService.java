@@ -12,8 +12,10 @@ public interface CommentService {
     Comment updateComment(Long id, String newContent);
     Comment deleteComment(Long id);
     Comment blockComment(Long id);
+    Comment unblockComment(Long id);
     void deleteCommentsByStoryId(Long storyId);
     List<Comment> getRootCommentsByStoryId(Long storyId);
     List<CommentResponse> getRepliesByParentId(Long parentId);
+    List<Comment> getAllCommentsForAdmin(Long storyId, String isDeleted);
 }
 

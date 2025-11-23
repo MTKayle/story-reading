@@ -241,6 +241,36 @@ public class CommentServiceImpl implements CommentService {
                         .build())
                 .collect(Collectors.toList());
     }
+
+    @Override
+    public Comment unblockComment(Long id) {
+        Comment comment = commentRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy bình luận có id = " + id));
+
+        comment.setIsDeleted("No");
+        Comment saved = commentRepository.save(comment);
+
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("action", "unblock");
+        payload.put("comment", saved);
+
+        String channelId = saved.getChapterId() != null ? saved.getChapterId().toString() : "story-" + saved.getStoryId();
+        messagingTemplate.convertAndSend("/topic/comments/" + channelId, payload);
+        return saved;
+    }
+
+    @Override
+    public List<Comment> getAllCommentsForAdmin(Long storyId, String isDeleted) {
+        if (storyId != null && isDeleted != null) {
+            return commentRepository.findByStoryIdAndIsDeletedOrderByCreatedAtDesc(storyId, isDeleted);
+        } else if (storyId != null) {
+            return commentRepository.findByStoryIdOrderByCreatedAtDesc(storyId);
+        } else if (isDeleted != null) {
+            return commentRepository.findByIsDeletedOrderByCreatedAtDesc(isDeleted);
+        } else {
+            return commentRepository.findAllByOrderByCreatedAtDesc();
+        }
+    }
 }
 
 

@@ -41,7 +41,8 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
             "/api/story", // Cho phép truy cập công khai đến các truyện công khai
             "/api/comments", // Cho phép đọc bình luận công khai
             "/api/user", // Cho phép đọc thông tin user công khai (để hiển thị tên/avatar trong comment)
-            "/api/rating" // Cho phép đọc rating công khai
+            "/api/rating", // Cho phép đọc rating công khai
+            "/api/reaction" // Cho phép đọc reaction công khai
     );
 
     //ham kiem tra public get endpoint
