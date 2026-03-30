@@ -1,0 +1,13 @@
+-- Create all databases for microservices
+CREATE DATABASE IF NOT EXISTS userdb;
+CREATE DATABASE IF NOT EXISTS storydb;
+CREATE DATABASE IF NOT EXISTS paymentdb;
+CREATE DATABASE IF NOT EXISTS commentdb;
+CREATE DATABASE IF NOT EXISTS notificationdb;
+
+-- Grant privileges
+GRANT ALL PRIVILEGES ON DATABASE userdb TO postgres;
+GRANT ALL PRIVILEGES ON DATABASE storydb TO postgres;
+GRANT ALL PRIVILEGES ON DATABASE paymentdb TO postgres;
+GRANT ALL PRIVILEGES ON DATABASE commentdb TO postgres;
+GRANT ALL PRIVILEGES ON DATABASE notificationdb TO postgres;

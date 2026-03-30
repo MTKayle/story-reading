@@ -31,3 +31,37 @@ build/
 
 ### VS Code ###
 .vscode/
+
+### Environment Variables & Secrets ###
+.env
+.env.local
+.env.*.local
+*.env
+**/*.env
+!.env.example
+
+### Application Properties with Secrets ###
+**/application-prod.properties
+**/application-production.properties
+**/application-local.properties
+
+### Sensitive Configuration ###
+docker-compose.override.yml
+secrets/
+*.key
+*.pem
+*.p12
+*.jks
+
+### Logs ###
+*.log
+logs/
+
+### OS ###
+.DS_Store
+Thumbs.db
+
+### Backup Files ###
+*.bak
+*.backup
+*~

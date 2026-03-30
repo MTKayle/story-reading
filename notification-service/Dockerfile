@@ -1,14 +1,16 @@
-# Sử dụng Eclipse Temurin JDK 17
-FROM eclipse-temurin:17-jdk
-
-# Tạo thư mục app trong container
+# Build stage
+FROM eclipse-temurin:17-jdk AS build
 WORKDIR /app
+COPY pom.xml .
+COPY src ./src
+COPY mvnw .
+COPY .mvn .mvn
+RUN chmod +x mvnw
+RUN ./mvnw clean package -DskipTests
 
-# Copy file jar đã build vào container và đổi tên thành app.jar
-COPY target/notification-service-0.0.1-SNAPSHOT.jar app.jar
-
-# Mở port service
-EXPOSE 8882
-
-# Lệnh chạy ứng dụng
+# Production stage
+FROM eclipse-temurin:17-jre
+WORKDIR /app
+COPY --from=build /app/target/notification-service-0.0.1-SNAPSHOT.jar app.jar
+EXPOSE 8087
 ENTRYPOINT ["java", "-jar", "app.jar"]
